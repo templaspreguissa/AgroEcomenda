@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}AgroEncomenda{% endblock %} · AgroEncomenda</title>
+  <meta name="description" content="Marketplace de negociações no agronegócio: anuncie o que produz ou publique o que precisa comprar e receba propostas.">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</head>
+<body>
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+
+  <header class="topo">
+    <div class="topo__interno">
+      <a class="marca" href="{{ url_for('main.index') }}" aria-label="AgroEncomenda, página inicial">
+        <span class="marca__icone" aria-hidden="true">🌾</span>
+        <span class="marca__nome">Agro<strong>Encomenda</strong></span>
+      </a>
+      <nav class="menu" aria-label="Menu principal">
+        {% if g.usuario %}
+          <a class="menu__link" href="{{ url_for('main.painel') }}">Meu painel</a>
+          <form class="menu__form" method="post" action="{{ url_for('auth.sair') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="menu__link menu__botao" type="submit">Sair</button>
+          </form>
+        {% else %}
+          <a class="menu__link" href="{{ url_for('auth.entrar') }}">Entrar</a>
+          <a class="botao botao--pequeno" href="{{ url_for('auth.cadastro') }}">Criar conta</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main id="conteudo" class="conteudo" tabindex="-1">
+    {% with mensagens = get_flashed_messages(with_categories=true) %}
+      {% if mensagens %}
+        <div class="avisos" role="status">
+          {% for categoria, mensagem in mensagens %}
+            <p class="aviso aviso--{{ categoria }}">{{ mensagem }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block conteudo %}{% endblock %}
+  </main>
+
+  <footer class="rodape">
+    <div class="rodape__interno">
+      <p><strong>AgroEncomenda</strong> · projeto acadêmico do Trabalho A3 de Projeto e Engenharia de Software.</p>
+      <p>A plataforma aproxima compradores e vendedores. Não vende produtos, não intermedia pagamentos e não faz entregas.</p>
+      <nav aria-label="Links institucionais">
+        <a href="{{ url_for('main.termos') }}">Termos de Uso</a>
+        <a href="{{ url_for('main.privacidade') }}">Política de Privacidade</a>
+        {% if config.REPOSITORIO_URL %}<a href="{{ config.REPOSITORIO_URL }}">Código no GitHub</a>{% endif %}
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

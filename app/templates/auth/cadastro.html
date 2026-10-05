@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_macros.html" import campo %}
+{% block titulo %}Criar conta{% endblock %}
+{% block conteudo %}
+<section class="secao secao--estreita">
+  <h1>Criar conta</h1>
+  <p class="texto-apoio">Com uma conta você pode vender e comprar. Leva menos de um minuto.</p>
+
+  <form class="formulario" method="post" novalidate>
+    {{ form.hidden_tag() }}
+
+    {{ campo(form.nome, autocomplete='name') }}
+    {{ campo(form.email, dica='Usado para entrar. Não aparece para outros usuários.', autocomplete='email') }}
+
+    <fieldset class="campo{% if form.tipo_pessoa.errors %} campo--erro{% endif %}">
+      <legend class="campo__rotulo">{{ form.tipo_pessoa.label.text }}</legend>
+      {% for opcao in form.tipo_pessoa %}
+        <label class="opcao">{{ opcao() }} <span>{{ opcao.label.text }}</span></label>
+      {% endfor %}
+      {% if form.tipo_pessoa.errors %}<p class="campo__erro">{{ form.tipo_pessoa.errors[0] }}</p>{% endif %}
+    </fieldset>
+
+    {{ campo(form.senha, dica='Pelo menos ' ~ config.SENHA_MINIMA ~ ' caracteres. Pode ser uma frase, como "milho verde na safra de março".', autocomplete='new-password', mostrar_senha=True) }}
+    {{ campo(form.confirmar, autocomplete='new-password', mostrar_senha=True) }}
+
+    <div class="campo{% if form.aceite.errors %} campo--erro{% endif %}">
+      <label class="opcao">
+        {{ form.aceite(**({'aria-describedby': 'aceite-erro', 'aria-invalid': 'true'} if form.aceite.errors else {})) }}
+        <span>Li e aceito os <a href="{{ url_for('main.termos') }}" target="_blank" rel="noopener">Termos de Uso</a> e a <a href="{{ url_for('main.privacidade') }}" target="_blank" rel="noopener">Política de Privacidade</a>.</span>
+      </label>
+      {% if form.aceite.errors %}<p class="campo__erro" id="aceite-erro">{{ form.aceite.errors[0] }}</p>{% endif %}
+    </div>
+
+    <button class="botao botao--largo" type="submit">Criar conta</button>
+  </form>
+
+  <p class="texto-apoio">Já tem conta? <a href="{{ url_for('auth.entrar') }}">Entrar</a></p>
+</section>
+{% endblock %}

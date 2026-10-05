@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block titulo %}Meu painel{% endblock %}
+{% block conteudo %}
+<section class="secao">
+  <h1>Olá, {{ usuario.nome }}</h1>
+  <p class="texto-apoio">Este é o seu painel. Aqui ficarão seus anúncios, suas encomendas e as propostas que você enviou e recebeu.</p>
+
+  <div class="paineis">
+    <article class="cartao">
+      <h2 class="cartao__titulo">Meus anúncios</h2>
+      <p class="vazio">Você ainda não publicou anúncios.</p>
+    </article>
+    <article class="cartao">
+      <h2 class="cartao__titulo">Minhas encomendas</h2>
+      <p class="vazio">Você ainda não publicou encomendas.</p>
+    </article>
+    <article class="cartao">
+      <h2 class="cartao__titulo">Propostas</h2>
+      <p class="vazio">Nenhuma proposta enviada ou recebida.</p>
+    </article>
+  </div>
+
+  <p class="aviso aviso--info">Esta é a primeira versão do sistema. A publicação de anúncios, encomendas e propostas chega nas próximas versões.</p>
+</section>
+
+<section class="secao" aria-labelledby="meus-dados">
+  <h2 id="meus-dados">Meus dados</h2>
+  <dl class="dados">
+    <div><dt>Nome</dt><dd>{{ usuario.nome }}</dd></div>
+    <div><dt>E-mail</dt><dd>{{ usuario.email }}</dd></div>
+    <div><dt>Tipo de conta</dt><dd>{{ 'Empresa ou cooperativa' if usuario.tipo_pessoa == 'PJ' else 'Pessoa física' }}</dd></div>
+    <div><dt>Conta criada em (UTC)</dt><dd>{{ usuario.criado_em }}</dd></div>
+  </dl>
+</section>
+{% endblock %}

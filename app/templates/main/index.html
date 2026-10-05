@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block titulo %}Compre e venda no agro{% endblock %}
+{% block conteudo %}
+{% set destino = url_for('main.painel') if g.usuario else url_for('auth.cadastro') %}
+
+<section class="destaque">
+  <div class="destaque__interno">
+    <h1 class="destaque__titulo">Compre e venda no agro, do jeito que você negocia</h1>
+    <p class="destaque__texto">Anuncie o que você produz ou publique o que precisa comprar, com quantidade, local e prazo. Receba propostas e acompanhe tudo num só lugar.</p>
+
+    <div class="escolhas">
+      <a class="escolha escolha--vender" href="{{ destino }}">
+        <span class="escolha__titulo">Quero vender</span>
+        <span class="escolha__texto">Anuncie produção, animais, máquinas, insumos ou serviços e responda encomendas da sua região.</span>
+      </a>
+      <a class="escolha escolha--comprar" href="{{ destino }}">
+        <span class="escolha__titulo">Quero comprar</span>
+        <span class="escolha__texto">Publique uma encomenda dizendo o que precisa e receba propostas de vendedores.</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="secao" aria-labelledby="como-funciona">
+  <h2 id="como-funciona">Como funciona</h2>
+  <ol class="passos">
+    <li class="passo">
+      <span class="passo__numero" aria-hidden="true">1</span>
+      <h3 class="passo__titulo">Publique</h3>
+      <p>Um anúncio do que você vende ou uma encomenda do que precisa: quantidade, unidade, município e prazo.</p>
+    </li>
+    <li class="passo">
+      <span class="passo__numero" aria-hidden="true">2</span>
+      <h3 class="passo__titulo">Receba propostas</h3>
+      <p>Vendedores respondem à sua encomenda com preço, quantidade, prazo e forma de entrega.</p>
+    </li>
+    <li class="passo">
+      <span class="passo__numero" aria-hidden="true">3</span>
+      <h3 class="passo__titulo">Compare e feche</h3>
+      <p>Compare as propostas, converse com o vendedor e aceite a melhor. O histórico fica guardado.</p>
+    </li>
+  </ol>
+</section>
+
+{% if categorias %}
+<section class="secao" aria-labelledby="categorias">
+  <h2 id="categorias">O que você encontra aqui</h2>
+  <ul class="categorias">
+    {% for categoria in categorias %}
+      <li class="categoria">
+        <h3 class="categoria__nome">{{ categoria.nome }}</h3>
+        <p class="categoria__subs">{{ categoria.subcategorias | join(', ') }}</p>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="secao secao--confianca" aria-labelledby="confianca">
+  <h2 id="confianca">Negociação direta e registrada</h2>
+  <ul class="lista-simples">
+    <li>Comprador e vendedor negociam diretamente, sem intermediário financeiro.</li>
+    <li>Propostas, mensagens e status da negociação ficam guardados no seu painel.</li>
+    <li>Conteúdo suspeito pode ser denunciado e é analisado pela moderação.</li>
+  </ul>
+</section>
+{% endblock %}

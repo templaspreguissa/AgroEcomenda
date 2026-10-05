@@ -1,0 +1,127 @@
+# AgroEncomenda
+
+Marketplace de negociações no agronegócio. Projeto acadêmico do **Trabalho A3** da disciplina **Projeto e Engenharia de Software**.
+
+O AgroEncomenda tem um **fluxo duplo**:
+
+- **quem vende** publica anúncios de produção, animais, máquinas, insumos e serviços;
+- **quem compra** publica encomendas dizendo exatamente o que precisa (produto, quantidade, unidade, município e prazo) e recebe propostas de vendedores.
+
+Comprador e vendedor negociam e trocam mensagens dentro da plataforma, com o status da negociação registrado. A plataforma **não intermedia pagamentos nem faz entregas**.
+
+> **Status:** Iteração 0 (fundação). Já funcionam o cadastro, o login, o painel inicial, os Termos de Uso, a Política de Privacidade e o banco de dados completo. As próximas iterações estão no [roadmap](#roadmap).
+
+## Tecnologias
+
+| Camada | Tecnologia |
+|---|---|
+| Interface | HTML5, CSS3 próprio (pensado primeiro para o celular) e JavaScript mínimo |
+| Servidor | Python 3.9+ com Flask 3.1 e Flask-WTF (formulários e proteção CSRF) |
+| Banco de dados | SQLite 3.37+ (tabelas `STRICT`, chaves estrangeiras ativadas em toda conexão) |
+| Testes | pytest |
+| Versionamento | Git e GitHub |
+
+## Como rodar no Windows (PowerShell)
+
+Pré-requisito: Python 3.9 ou mais novo ([python.org](https://www.python.org/downloads/) ou `winget install Python.Python.3.14`).
+
+```powershell
+# 0. Baixar o projeto
+git clone https://github.com/templaspreguissa/AgroEcomenda.git
+cd AgroEcomenda
+
+# 1. Na pasta do projeto, criar e ativar o ambiente virtual
+py -3 -m venv .venv
+.venv\Scripts\Activate.ps1
+
+# 2. Instalar as dependências (inclui pytest)
+pip install -r requirements-dev.txt
+
+# 3. Criar o banco e carregar categorias e unidades de medida
+flask --app app init-db
+
+# 4. (Opcional) Carregar os municípios de uma UF pela API do IBGE
+flask --app app carregar-municipios MG
+
+# 5. Rodar em modo de desenvolvimento
+flask --app app run --debug
+```
+
+Acesse <http://127.0.0.1:5000>. O banco fica em `instance/agroencomenda.db`, fora do Git.
+
+No Linux ou macOS, troque `py -3` por `python3` e ative o ambiente com `source .venv/bin/activate`.
+
+### Rodar os testes
+
+```powershell
+pytest
+```
+
+### Fora do modo de desenvolvimento
+
+Sem a variável `FLASK_SECRET_KEY`, a aplicação usa uma chave temporária e as sessões caem a cada reinício. Para publicar, gere uma chave e defina a variável de ambiente antes de iniciar:
+
+```powershell
+python -c "import secrets; print(secrets.token_hex())"
+$env:FLASK_SECRET_KEY = "<valor gerado>"
+```
+
+Nunca coloque a chave no código nem no Git.
+
+## Estrutura
+
+```text
+app/
+├── __init__.py        # create_app(): configuração, CSRF, cabeçalhos de segurança, blueprints
+├── db.py              # conexão SQLite (PRAGMA foreign_keys = ON) e comandos init-db / carregar-municipios
+├── schema.sql         # esquema completo do banco (usuário, anúncio, encomenda, proposta, mensagem...)
+├── seed.sql           # unidades de medida, categorias e atributos por categoria
+├── auth/              # cadastro, login, logout, limite de tentativas, decoradores de acesso
+├── main/              # página inicial, termos, privacidade, painel
+├── templates/         # HTML (Jinja)
+└── static/            # CSS e JavaScript
+docs/
+└── benchmark-marketplaces.md   # análise de interface de OLX, Agrofy, MF Rural, Grão Direto, GetNinjas...
+tests/                 # testes automatizados (pytest)
+```
+
+## Segurança e privacidade já aplicadas
+
+- Senhas guardadas com hash `pbkdf2:sha256:600000` (recomendação da OWASP). A senha nunca é armazenada.
+- Regras de senha do NIST SP 800-63B-4: mínimo de 15 caracteres (frase-senha), sem regras de composição, bloqueio de senhas comuns e limite de tentativas de login.
+- Proteção CSRF em todos os formulários. Logout só por POST.
+- SQL sempre parametrizado. Escape automático de HTML nos templates.
+- Cabeçalhos `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options` e `Referrer-Policy`.
+- Cookie de sessão `HttpOnly` e `SameSite=Lax`, sessão renovada no login e redirecionamento só para páginas internas.
+- Registro do aceite dos Termos e da Política de Privacidade (versão e data). Dados mínimos: sem CPF, sem endereço.
+
+Durante o trabalho acadêmico, **use apenas dados fictícios**.
+
+## Requisitos atendidos nesta versão
+
+| Código | Requisito | Situação |
+|---|---|---|
+| RF01 | Cadastro de usuários | Feito (conta única que compra e vende, papel `admin` separado) |
+| RF02 | Login e alteração de dados | Login feito. Recuperação de acesso e edição de perfil nas próximas iterações |
+| RF03 | Bloqueio de áreas por perfil | Feito (decoradores `login_obrigatorio` e `admin_obrigatorio`) |
+| RF22 | Aceite de Termos e Política de Privacidade | Feito |
+| RNF01 | Interface responsiva | Feito para as telas existentes |
+| RNF02 | Senhas com hash adaptativo | Feito |
+| RNF05 | Integridade referencial no SQLite | Feito (`PRAGMA foreign_keys = ON` + restrições `CHECK`) |
+
+## Roadmap
+
+| Iteração | Entregas | Requisitos |
+|---|---|---|
+| 0 — Fundação | Estrutura, banco, cadastro, login, painel, termos | RF01–RF03, RF22 |
+| 1 — Fluxo de demanda | Encomendas, lista de encomendas, propostas, aceite e recusa, estados | RF07–RF10, RF17, RF24 |
+| 2 — Fluxo de oferta | Anúncios com fotos, busca e filtros, proposta sobre anúncio | RF04–RF06, RF16, RF18 |
+| 3 — Comunicação | Mensagens, notificações, painel completo, comparação de propostas | RF11–RF14, RF23 |
+| 4 — Administração e confiança | Painel administrativo, denúncias, bloqueio, recuperação de acesso, exclusão de conta | RF02, RF15, RF19–RF21, RF25 |
+| 5 — Qualidade | Revisão de segurança e acessibilidade (WCAG 2.2 AA), testes, dados de demonstração | RNF03–RNF12 |
+
+Fora do escopo: pagamento integrado, logística e frete, reputação e chat em tempo real.
+
+## Equipe
+
+[Nome dos integrantes do grupo]

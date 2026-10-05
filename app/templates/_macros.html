@@ -1,0 +1,17 @@
+{# Campo de formulário acessível: rótulo visível, dica e erro ligados por aria-describedby. #}
+{% macro campo(field, dica=None, autocomplete=None, mostrar_senha=False) %}
+  {% set ids = [] %}
+  {% if dica %}{% set _ = ids.append(field.id ~ '-dica') %}{% endif %}
+  {% if field.errors %}{% set _ = ids.append(field.id ~ '-erro') %}{% endif %}
+  {% set attrs = {'class': 'campo__entrada'} %}
+  {% if ids %}{% set _ = attrs.update({'aria-describedby': ids | join(' ')}) %}{% endif %}
+  {% if field.errors %}{% set _ = attrs.update({'aria-invalid': 'true'}) %}{% endif %}
+  {% if autocomplete %}{% set _ = attrs.update({'autocomplete': autocomplete}) %}{% endif %}
+  {% if mostrar_senha %}{% set _ = attrs.update({'data-mostrar-senha': ''}) %}{% endif %}
+  <div class="campo{% if field.errors %} campo--erro{% endif %}">
+    {{ field.label(class_='campo__rotulo') }}
+    {% if dica %}<p class="campo__dica" id="{{ field.id }}-dica">{{ dica }}</p>{% endif %}
+    {{ field(**attrs) }}
+    {% if field.errors %}<p class="campo__erro" id="{{ field.id }}-erro">{{ field.errors[0] }}</p>{% endif %}
+  </div>
+{% endmacro %}

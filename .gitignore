@@ -1,0 +1,27 @@
+# Ambiente virtual do Python
+.venv/
+venv/
+
+# Banco, uploads e configuração local (pasta instance do Flask)
+instance/
+*.db
+*.sqlite3
+uploads/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Variáveis de ambiente e segredos
+.env
+.flaskenv
+
+# Editores e sistema
+.vscode/
+.idea/
+.claude/
+Thumbs.db
+.DS_Store

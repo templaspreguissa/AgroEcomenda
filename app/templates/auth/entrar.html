@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_macros.html" import campo %}
+{% block titulo %}Entrar{% endblock %}
+{% block conteudo %}
+<section class="secao secao--estreita">
+  <h1>Entrar</h1>
+
+  <form class="formulario" method="post" action="{{ url_for('auth.entrar', next=request.args.get('next')) }}" novalidate>
+    {{ form.hidden_tag() }}
+    {{ campo(form.email, autocomplete='email') }}
+    {{ campo(form.senha, autocomplete='current-password', mostrar_senha=True) }}
+    <button class="botao botao--largo" type="submit">Entrar</button>
+  </form>
+
+  <p class="texto-apoio">Ainda não tem conta? <a href="{{ url_for('auth.cadastro') }}">Criar conta</a></p>
+</section>
+{% endblock %}

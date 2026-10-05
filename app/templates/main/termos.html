@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block titulo %}Termos de Uso{% endblock %}
+{% block conteudo %}
+<article class="secao secao--texto">
+  <h1>Termos de Uso</h1>
+  <p class="texto-apoio">Versão {{ config.TERMOS_VERSAO }}. Rascunho elaborado para fins acadêmicos. Antes de qualquer uso real, este texto deve ser revisado por profissional habilitado.</p>
+
+  <h2>1. O que é o AgroEncomenda</h2>
+  <p>O AgroEncomenda é uma plataforma que aproxima pessoas e empresas do setor agropecuário. Nela, vendedores publicam anúncios e compradores publicam encomendas, e as partes trocam propostas e mensagens.</p>
+  <p>O AgroEncomenda <strong>não vende produtos</strong>, <strong>não intermedia pagamentos</strong> e <strong>não faz entregas</strong>. O negócio é fechado diretamente entre comprador e vendedor, que são responsáveis pelo que combinam.</p>
+
+  <h2>2. Conta</h2>
+  <ul>
+    <li>Para publicar e negociar é preciso criar uma conta com dados verdadeiros.</li>
+    <li>Você é responsável por manter sua senha em segredo.</li>
+    <li>Uma mesma conta pode comprar e vender.</li>
+  </ul>
+
+  <h2>3. Responsabilidades de quem publica</h2>
+  <ul>
+    <li>As informações de anúncios, encomendas e propostas devem ser verdadeiras e completas, incluindo quantidade, unidade de medida, local, prazo e condições.</li>
+    <li>É proibido publicar produtos ou serviços ilícitos, ou itens cuja venda dependa de autorização, registro ou documento que o anunciante não tenha.</li>
+    <li>É proibido usar a plataforma para enviar mensagens ofensivas, enganosas ou indesejadas.</li>
+  </ul>
+
+  <h2>4. Denúncias e moderação</h2>
+  <p>Qualquer usuário pode denunciar conteúdo ou conduta inadequada. A moderação analisa a denúncia e pode ocultar conteúdo ou bloquear contas, registrando a decisão e o motivo.</p>
+
+  <h2>5. Alterações</h2>
+  <p>Estes termos podem mudar. A versão aceita por cada usuário fica registrada com a data do aceite.</p>
+</article>
+{% endblock %}

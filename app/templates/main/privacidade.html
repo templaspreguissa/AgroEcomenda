@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block titulo %}Política de Privacidade{% endblock %}
+{% block conteudo %}
+<article class="secao secao--texto">
+  <h1>Política de Privacidade</h1>
+  <p class="texto-apoio">Versão {{ config.TERMOS_VERSAO }}. Rascunho elaborado para fins acadêmicos, com base na Lei nº 13.709/2018 (LGPD). Antes de qualquer uso real, este texto deve ser revisado por profissional habilitado. Durante o trabalho acadêmico, use apenas dados fictícios.</p>
+
+  <h2>1. Quem trata os dados</h2>
+  <p>O controlador é a equipe responsável pelo projeto AgroEncomenda.
+    {% if config.REPOSITORIO_URL %}O canal de contato com os titulares é a página do projeto no <a href="{{ config.REPOSITORIO_URL }}">GitHub</a>.{% else %}O canal de contato com os titulares será informado nesta página.{% endif %}</p>
+
+  <h2>2. Quais dados e para quê</h2>
+  <table class="tabela">
+    <caption>Dados tratados nesta versão do sistema</caption>
+    <thead><tr><th scope="col">Dado</th><th scope="col">Para que serve</th><th scope="col">Quem vê</th></tr></thead>
+    <tbody>
+      <tr><td>Nome</td><td>Identificar quem anuncia, encomenda e negocia</td><td>Outros usuários, nas negociações</td></tr>
+      <tr><td>E-mail</td><td>Entrar na conta e receber avisos do sistema</td><td>Só você e a administração</td></tr>
+      <tr><td>Senha</td><td>Proteger sua conta. Guardamos só um código irreversível (hash), nunca a senha</td><td>Ninguém</td></tr>
+      <tr><td>Tipo de conta</td><td>Diferenciar pessoa física de empresa ou cooperativa</td><td>Outros usuários</td></tr>
+      <tr><td>Aceite dos termos</td><td>Registrar a versão e a data em que você aceitou</td><td>Administração</td></tr>
+    </tbody>
+  </table>
+
+  <h2>3. O que não coletamos</h2>
+  <p>Não pedimos CPF, data de nascimento nem endereço completo. A localização dos anúncios e encomendas será mostrada em nível de município.</p>
+
+  <h2>4. Seus direitos</h2>
+  <p>Você pode confirmar quais dados temos, acessá-los, corrigi-los e pedir a exclusão da conta (LGPD, art. 18). Seus dados aparecem na seção "Meus dados" do painel.</p>
+
+  <h2>5. Segurança</h2>
+  <p>Senhas são guardadas com hash, as sessões usam cookies protegidos e os formulários têm proteção contra envio a partir de outros sites. Se houver incidente de segurança com risco relevante, os titulares e a autoridade nacional serão comunicados.</p>
+
+  <h2>6. Compartilhamento</h2>
+  <p>Os dados não são vendidos nem compartilhados para publicidade. Podem ser armazenados por um serviço de hospedagem contratado para manter o sistema funcionando.</p>
+</article>
+{% endblock %}

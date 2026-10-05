@@ -1,0 +1,58 @@
+import sqlite3
+
+import pytest
+
+from app.db import get_db, salvar_municipios
+
+
+def test_chaves_estrangeiras_ativas(app):
+    with app.app_context():
+        assert get_db().execute("PRAGMA foreign_keys").fetchone()[0] == 1
+
+
+def test_carga_inicial(app):
+    with app.app_context():
+        db = get_db()
+        assert db.execute("SELECT COUNT(*) FROM categoria WHERE categoria_pai_id IS NULL").fetchone()[0] == 5
+        siglas = {linha[0] for linha in db.execute("SELECT sigla FROM unidade_medida")}
+        assert {"sc60", "@", "cab", "ha"} <= siglas
+
+
+def test_chave_estrangeira_invalida_e_rejeitada(app):
+    with app.app_context():
+        db = get_db()
+        with pytest.raises(sqlite3.IntegrityError):
+            db.execute(
+                "INSERT INTO usuario (nome, email, senha_hash, tipo_pessoa, municipio_id, termos_versao, termos_aceitos_em) "
+                "VALUES ('A', 'a@x.com', 'h', 'PF', 999999, 'v', '2026-01-01 00:00:00')"
+            )
+
+
+def test_tabela_strict_rejeita_tipo_errado(app):
+    with app.app_context():
+        with pytest.raises(sqlite3.IntegrityError):
+            get_db().execute("INSERT INTO unidade_medida (id, sigla, nome) VALUES ('abc', 'x', 'y')")
+
+
+def test_comando_carregar_municipios(app, monkeypatch):
+    monkeypatch.setattr(
+        "app.db.buscar_municipios_ibge", lambda uf: [(3106200, "Belo Horizonte"), (3170206, "Uberlândia")]
+    )
+    resultado = app.test_cli_runner().invoke(args=["carregar-municipios", "mg"])
+    assert "2 municípios de MG carregados" in resultado.output
+    with app.app_context():
+        nomes = [linha[0] for linha in get_db().execute("SELECT nome FROM municipio WHERE uf = 'MG' ORDER BY nome")]
+    assert nomes == ["Belo Horizonte", "Uberlândia"]
+
+
+def test_comando_carregar_municipios_rejeita_uf_invalida(app):
+    resultado = app.test_cli_runner().invoke(args=["carregar-municipios", "XX"])
+    assert resultado.exit_code != 0
+    assert "UF inválida" in resultado.output
+
+
+def test_salvar_municipios_nao_duplica(app):
+    with app.app_context():
+        salvar_municipios("MG", [(3106200, "Belo Horizonte")])
+        salvar_municipios("MG", [(3106200, "Belo Horizonte")])
+        assert get_db().execute("SELECT COUNT(*) FROM municipio").fetchone()[0] == 1
