@@ -1,21 +1,25 @@
 {% extends "base.html" %}
 {% from "_macros.html" import card_anuncio %}
-{% block titulo %}Compre e venda no agro{% endblock %}
+{% block titulo %}Do produtor para o comércio e para a sua mesa{% endblock %}
 {% block conteudo %}
 
 <section class="destaque">
   <div class="destaque__interno">
-    <h1 class="destaque__titulo">Compre e venda no agro, do jeito que você negocia</h1>
-    <p class="destaque__texto">Anuncie o que você produz ou publique o que precisa comprar, com quantidade, local e prazo. Receba propostas e acompanhe tudo num só lugar.</p>
+    <h1 class="destaque__titulo">Do produtor para o comércio e para a sua mesa</h1>
+    <p class="destaque__texto">Quem produz mostra o que tem. Mercados, restaurantes e distribuidores encontram fornecedores da região. Quem compra para casa chega direto ao produtor.</p>
 
-    <div class="escolhas">
-      <a class="escolha escolha--vender" href="{{ url_for('anuncios.novo') }}">
-        <span class="escolha__titulo">Quero vender</span>
-        <span class="escolha__texto">Anuncie o que você produz, com fotos e preço, e receba propostas de compra.</span>
+    <div class="escolhas escolhas--tres">
+      <a class="escolha escolha--vender" href="{{ url_for('perfis.editar_produtor') if g.usuario else url_for('auth.cadastro', uso='vender') }}">
+        <span class="escolha__titulo">Sou produtor</span>
+        <span class="escolha__texto">Crie sua vitrine, cadastre o que produz e receba propostas de lojas e consumidores.</span>
       </a>
-      <a class="escolha escolha--comprar" href="{{ url_for('encomendas.nova') }}">
-        <span class="escolha__titulo">Quero comprar</span>
-        <span class="escolha__texto">Publique uma encomenda dizendo o que precisa e receba propostas de vendedores.</span>
+      <a class="escolha escolha--comercio" href="{{ url_for('perfis.editar_comercio') if g.usuario else url_for('auth.cadastro', uso='comercio') }}">
+        <span class="escolha__titulo">Tenho um comércio</span>
+        <span class="escolha__texto">Cadastre sua loja, encontre produtores da região e publique encomendas do que precisa.</span>
+      </a>
+      <a class="escolha escolha--comprar" href="{{ url_for('perfis.produtores') }}">
+        <span class="escolha__titulo">Quero comprar do produtor</span>
+        <span class="escolha__texto">Veja quem produz perto de você, o que vende e onde encontrar.</span>
       </a>
     </div>
     <p class="destaque__links">Ou veja os <a href="{{ url_for('anuncios.lista') }}">anúncios</a> e as <a href="{{ url_for('encomendas.lista') }}">encomendas abertas</a>.</p>
@@ -37,18 +41,18 @@
   <ol class="passos">
     <li class="passo">
       <span class="passo__numero" aria-hidden="true">1</span>
-      <h3 class="passo__titulo">Publique</h3>
-      <p>Um anúncio do que você vende ou uma encomenda do que precisa: quantidade, unidade, município e prazo.</p>
+      <h3 class="passo__titulo">O produtor monta a vitrine</h3>
+      <p>Diz onde fica, como vende (retirada, entrega, feira) e anuncia o que produz, com fotos e preço.</p>
     </li>
     <li class="passo">
       <span class="passo__numero" aria-hidden="true">2</span>
-      <h3 class="passo__titulo">Receba propostas</h3>
-      <p>Vendedores respondem à sua encomenda, e compradores fazem ofertas nos seus anúncios, com preço, quantidade e prazo.</p>
+      <h3 class="passo__titulo">Comércios e consumidores encontram</h3>
+      <p>A busca mostra primeiro quem está na mesma cidade e na mesma região. Lojas também publicam encomendas do que precisam.</p>
     </li>
     <li class="passo">
       <span class="passo__numero" aria-hidden="true">3</span>
-      <h3 class="passo__titulo">Compare e feche</h3>
-      <p>Compare as propostas e aceite a melhor. O contato entre vocês é liberado e o histórico fica guardado.</p>
+      <h3 class="passo__titulo">Proposta e negócio direto</h3>
+      <p>Quem compra faz uma proposta. Ao aceitar, os dois recebem o contato um do outro e combinam pagamento e entrega.</p>
     </li>
   </ol>
 </section>
@@ -70,9 +74,10 @@
 <section class="secao secao--confianca" aria-labelledby="confianca">
   <h2 id="confianca">Negociação direta e registrada</h2>
   <ul class="lista-simples">
-    <li>Comprador e vendedor negociam diretamente, sem intermediário financeiro.</li>
-    <li>Propostas e status da negociação ficam guardados no seu painel.</li>
+    <li>O AgroEncomenda não vende nada e não fica com parte do pagamento: produtor e comprador negociam direto.</li>
+    <li>Lojas se cadastram com CNPJ, e os dados delas aparecem só para produtores.</li>
     <li>Até a proposta ser aceita, cada lado vê só o primeiro nome e o município do outro.</li>
+    <li>Em produtos de origem animal, o produtor informa o serviço de inspeção, e o anúncio mostra até onde ele pode ser vendido.</li>
   </ul>
 </section>
 {% endblock %}

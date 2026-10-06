@@ -6,9 +6,43 @@
   <div class="cabecalho-secao">
     <div>
       <h1>Olá, {{ usuario.nome }}</h1>
-      <p class="texto-apoio">Acompanhe suas encomendas, seus anúncios e as propostas que você enviou.</p>
+      <p class="texto-apoio">Acompanhe sua vitrine, sua loja, suas encomendas e as propostas que você enviou.</p>
     </div>
     <a class="botao" href="{{ url_for('encomendas.nova') }}">Publicar encomenda</a>
+  </div>
+
+  <div class="paineis paineis--duplo">
+    <section class="cartao" aria-labelledby="minha-vitrine">
+      <h2 id="minha-vitrine" class="cartao__titulo">Minha vitrine de produtor</h2>
+      {% if vitrine %}
+        <p><strong>{{ vitrine.nome_vitrine }}</strong> · {{ vitrine.municipio_nome }}/{{ vitrine.municipio_uf }}<br>
+          <span class="card__suave">{{ vitrine.produtos_ativos }} produto{{ '' if vitrine.produtos_ativos == 1 else 's' }} à venda</span></p>
+        <div class="acoes acoes--compactas">
+          <a class="botao botao--pequeno" href="{{ url_for('perfis.vitrine', usuario_id=g.usuario.id) }}">Ver vitrine</a>
+          <a class="botao botao--pequeno botao--secundario" href="{{ url_for('perfis.editar_produtor') }}">Editar</a>
+          <a class="botao botao--pequeno botao--secundario" href="{{ url_for('perfis.comercios') }}">Comércios da região</a>
+        </div>
+      {% else %}
+        <p class="vazio">Você produz? Crie sua vitrine para mostrar o que vende a lojas e consumidores da região.</p>
+        <a class="botao botao--pequeno" href="{{ url_for('perfis.editar_produtor') }}">Criar vitrine</a>
+      {% endif %}
+    </section>
+
+    <section class="cartao" aria-labelledby="minha-loja">
+      <h2 id="minha-loja" class="cartao__titulo">Minha loja</h2>
+      {% if loja %}
+        <p><strong>{{ loja.nome_fantasia }}</strong> · {{ TIPOS_COMERCIO[loja.tipo] }}<br>
+          <span class="card__suave">{{ 'Verificada' if loja.verificado_em else 'CNPJ conferido, aguardando verificação' }}</span></p>
+        <div class="acoes acoes--compactas">
+          <a class="botao botao--pequeno" href="{{ url_for('perfis.produtores') }}">Produtores da região</a>
+          <a class="botao botao--pequeno botao--secundario" href="{{ url_for('perfis.comercio', usuario_id=g.usuario.id) }}">Ver loja</a>
+          <a class="botao botao--pequeno botao--secundario" href="{{ url_for('perfis.editar_comercio') }}">Editar</a>
+        </div>
+      {% else %}
+        <p class="vazio">Tem um mercado, restaurante ou distribuidora? Cadastre a loja para ser encontrado pelos produtores da região.</p>
+        <a class="botao botao--pequeno" href="{{ url_for('perfis.editar_comercio') }}">Cadastrar loja</a>
+      {% endif %}
+    </section>
   </div>
 
   <div class="paineis paineis--duplo">
@@ -55,7 +89,7 @@
   <section class="cartao" aria-labelledby="meus-anuncios">
     <div class="cabecalho-secao">
       <h2 id="meus-anuncios" class="cartao__titulo">Meus anúncios</h2>
-      <a class="botao botao--pequeno botao--secundario" href="{{ url_for('anuncios.novo') }}">Anunciar</a>
+      <a class="botao botao--pequeno botao--secundario" href="{{ url_for('anuncios.novo') }}">Anunciar produto</a>
     </div>
     {% if meus_anuncios %}
       <ul class="lista-painel">
@@ -74,12 +108,15 @@
 </section>
 
 <section class="secao" aria-labelledby="meus-dados">
-  <h2 id="meus-dados">Meus dados</h2>
+  <div class="cabecalho-secao">
+    <h2 id="meus-dados">Meus dados</h2>
+    <a class="botao botao--pequeno botao--secundario" href="{{ url_for('perfis.editar_conta') }}">Editar meus dados</a>
+  </div>
   <dl class="dados">
     <div><dt>Nome</dt><dd>{{ usuario.nome }}</dd></div>
     <div><dt>E-mail</dt><dd>{{ usuario.email }}</dd></div>
     <div><dt>Tipo de conta</dt><dd>{{ 'Empresa ou cooperativa' if usuario.tipo_pessoa == 'PJ' else 'Pessoa física' }}</dd></div>
-    <div><dt>Município</dt><dd>{{ usuario.municipio_nome ~ '/' ~ usuario.municipio_uf if usuario.municipio_nome else 'Ainda não informado (é preenchido na primeira encomenda)' }}</dd></div>
+    <div><dt>Município</dt><dd>{{ usuario.municipio_nome ~ '/' ~ usuario.municipio_uf if usuario.municipio_nome else 'Ainda não informado' }}</dd></div>
     <div><dt>Conta criada em</dt><dd>{{ usuario.criado_em | data_br }}</dd></div>
   </dl>
 </section>

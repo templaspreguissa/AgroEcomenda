@@ -1,7 +1,7 @@
 """Campos específicos por categoria (RF05), definidos na tabela atributo_categoria.
 
-Os atributos ficam na categoria principal (ex.: "Máquinas e equipamentos") e valem
-para todas as subcategorias dela (ex.: "Tratores").
+Os atributos ficam na categoria principal (ex.: "Produtos de origem animal") e valem
+para todas as subcategorias dela (ex.: "Queijos e laticínios").
 """
 import json
 

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block titulo %}Área para produtores{% endblock %}
+{% block conteudo %}
+<section class="secao secao--estreita">
+  <h1>Área para produtores</h1>
+  <p>Os dados dos comércios aparecem só para quem tem vitrine de produtor. Assim as lojas recebem contato de quem tem o que vender, e não de qualquer pessoa.</p>
+  <div class="acoes">
+    <a class="botao" href="{{ url_for('perfis.editar_produtor', next=request.path) }}">Criar minha vitrine</a>
+    <a class="botao botao--secundario" href="{{ url_for('perfis.produtores') }}">Ver produtores</a>
+  </div>
+</section>
+{% endblock %}

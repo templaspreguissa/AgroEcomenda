@@ -14,6 +14,8 @@
   --borda: #d6d0c4;
   --erro: #b42318;
   --erro-fundo: #fdecea;
+  --azul: #1e4d7b;
+  --azul-claro: #e8f0f8;
   --foco: #b45309;
   --raio: 10px;
   --sombra: 0 1px 2px rgba(0, 0, 0, .06), 0 2px 8px rgba(0, 0, 0, .05);
@@ -78,7 +80,7 @@ p { margin: 0 0 1em; }
   .menu__link { padding: 0 .5rem; }
   .botao--pequeno { padding: .4rem .7rem; }
   .subnav .subnav__interno { padding-inline: .5rem; gap: 0; }
-  .subnav .subnav__link { padding: 0 .6rem; }
+  .subnav .subnav__link { padding: 0 .4rem; font-size: .95rem; }
   /* No celular, "Anunciar" e "Encomendar" ficam nos botões das listas, da página inicial e do painel. */
   .subnav .subnav__link--acao { display: none; }
 }
@@ -127,6 +129,8 @@ p { margin: 0 0 1em; }
   border-left: 8px solid var(--verde);
 }
 .escolha--comprar { border-left-color: var(--terra); }
+.escolha--comercio { border-left-color: var(--azul); }
+.escolha--comercio .escolha__titulo { color: var(--azul); }
 .escolha:hover { color: var(--texto); background: #fbfaf7; }
 .escolha__titulo { display: block; font-size: 1.3rem; font-weight: 800; color: var(--verde-escuro); }
 .escolha--comprar .escolha__titulo { color: var(--terra); }
@@ -293,6 +297,30 @@ textarea.campo__entrada { min-height: 6rem; resize: vertical; }
 .fotos-atuais { list-style: none; padding: 0; margin: 0 0 1rem; display: flex; flex-wrap: wrap; gap: .75rem; }
 .fotos-atuais img { display: block; width: 160px; height: 120px; object-fit: cover; border-radius: var(--raio); border: 1px solid var(--borda); }
 
+/* ---------- perfis: vitrine, loja e diretórios ---------- */
+.perfil { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+.perfil h1 { margin-bottom: .25rem; }
+.perfil .texto-apoio { margin-bottom: .5rem; }
+.perfil__descricao { max-width: 46rem; }
+.perfil-foto { width: 120px; height: 120px; object-fit: cover; border-radius: 50%; border: 3px solid var(--superficie); box-shadow: var(--sombra); background: var(--verde-claro); }
+.perfil-foto--vazia { display: grid; place-items: center; font-size: 3rem; }
+.perfil-foto--previa { display: block; margin-bottom: .5rem; }
+.perfil-mini { display: flex; gap: .75rem; align-items: center; margin-bottom: .5rem; }
+.perfil-mini .card__titulo, .perfil-mini .card__meta { margin: 0; }
+.perfil-mini__foto { width: 64px; height: 64px; flex: none; object-fit: cover; border-radius: 50%; background: var(--verde-claro); }
+.perfil-mini__foto--vazia { display: grid; place-items: center; font-size: 1.75rem; }
+.selos { list-style: none; padding: 0; margin: .25rem 0 .5rem; display: flex; flex-wrap: wrap; gap: .35rem; }
+.selo { font-size: .85rem; font-weight: 600; padding: .15rem .55rem; border-radius: 999px; background: var(--fundo); border: 1px solid var(--borda); color: var(--texto-suave); }
+.selo--organico { background: var(--verde-claro); border-color: var(--verde); color: var(--verde-escuro); }
+.selo--verificado { background: var(--azul-claro); border-color: var(--azul); color: var(--azul); }
+.selo--verificado::before { content: "✔ "; }
+.contato { margin: 0 0 .5rem; }
+.contato a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; }
+.interesses { display: grid; gap: .5rem 1rem; }
+.interesses__grupo { border: 0; padding: 0; margin: 0; }
+.opcao--filtro { align-self: end; }
+.aviso--sucesso { border-color: var(--verde); background: var(--verde-claro); }
+
 /* Tabela que vira lista de cartões no celular */
 @media (max-width: 47.99rem) {
   .tabela--responsiva { display: block; overflow: visible; background: transparent; }
@@ -315,6 +343,8 @@ textarea.campo__entrada { min-height: 6rem; resize: vertical; }
   .destaque { padding: 3rem 1rem; }
   .destaque__titulo { font-size: 2.4rem; max-width: 40rem; }
   .escolhas { grid-template-columns: 1fr 1fr; max-width: 46rem; }
+  .escolhas--tres { grid-template-columns: 1fr; max-width: 40rem; }
+  .interesses { grid-template-columns: repeat(2, 1fr); }
   .passos { grid-template-columns: repeat(3, 1fr); }
   .categorias { grid-template-columns: repeat(2, 1fr); }
   .paineis { grid-template-columns: repeat(3, 1fr); }
@@ -327,6 +357,7 @@ textarea.campo__entrada { min-height: 6rem; resize: vertical; }
   .anuncio { grid-template-columns: 3fr 2fr; align-items: start; }
 }
 @media (min-width: 64rem) {
+  .escolhas--tres { grid-template-columns: repeat(3, 1fr); max-width: none; }
   .categorias { grid-template-columns: repeat(3, 1fr); }
   .cards { grid-template-columns: repeat(3, 1fr); }
   .filtros__form { grid-template-columns: 2fr 1.5fr 1fr 1fr; align-items: end; }

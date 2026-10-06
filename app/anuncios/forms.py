@@ -1,5 +1,5 @@
 """Formulário de anúncio de venda (RF04, RF05)."""
-from wtforms import RadioField, StringField, TextAreaField
+from wtforms import StringField, TextAreaField
 from wtforms.validators import DataRequired, Length, Optional
 
 from ..db import get_db
@@ -7,9 +7,6 @@ from ..formularios import (
     CampoMunicipio, CampoQuantidade, CampoReais, Formulario, SelecaoObrigatoria, escolhas_categorias,
     escolhas_unidades, texto_limpo,
 )
-
-CONDICOES = {"nao_se_aplica": "Não se aplica", "novo": "Novo", "usado": "Usado"}
-
 
 class AnuncioForm(Formulario):
     titulo = StringField(
@@ -26,7 +23,6 @@ class AnuncioForm(Formulario):
     preco = CampoReais("Preço (opcional)", filters=[texto_limpo], validators=[Optional()])
     unidade_id = SelecaoObrigatoria("Unidade de venda", mensagem="Escolha a unidade.")
     quantidade = CampoQuantidade("Quantidade disponível (opcional)", filters=[texto_limpo], validators=[Optional()])
-    condicao = RadioField("Condição", choices=list(CONDICOES.items()), default="nao_se_aplica")
     municipio = CampoMunicipio("Município onde está o produto", validators=[DataRequired("Informe o município.")])
 
     def __init__(self, *args, **kwargs):
@@ -43,6 +39,5 @@ class AnuncioForm(Formulario):
             "preco_centavos": self.preco.centavos,
             "unidade_id": self.unidade_id.data,
             "quantidade": self.quantidade.numero,
-            "condicao": self.condicao.data,
             "municipio_id": self.municipio.codigo,
         }

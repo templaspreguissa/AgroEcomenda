@@ -70,14 +70,14 @@
         <div class="card__foto card__foto--vazia" aria-hidden="true">Sem foto</div>
       {% endif %}
       <div class="card__corpo">
-        <p class="card__meta">{{ a.categoria_nome }}{% if a.condicao != 'nao_se_aplica' %} · {{ 'Novo' if a.condicao == 'novo' else 'Usado' }}{% endif %}</p>
+        <p class="card__meta">{{ a.categoria_nome }}</p>
         <h3 class="card__titulo"><a href="{{ url_for('anuncios.detalhe', anuncio_id=a.id) }}">{{ a.titulo }}</a></h3>
         <p class="card__destaque">{{ a.preco_centavos | reais }}{% if a.preco_centavos %} <span class="card__suave">{{ a.unidade_sigla | por_unidade }}</span>{% endif %}</p>
         <ul class="card__dados">
           <li><span aria-hidden="true">📍</span> {{ a.municipio_nome }}/{{ a.municipio_uf }}</li>
           {% if a.quantidade_disponivel %}<li><span aria-hidden="true">📦</span> {{ quantidade(a.quantidade_disponivel, a.unidade_sigla) }} disponíveis</li>{% endif %}
         </ul>
-        <p class="card__rodape card__suave">Publicado em {{ a.criado_em | data_br }} · por {{ a.vendedor_nome | primeiro_nome }}</p>
+        <p class="card__rodape card__suave">Publicado em {{ a.criado_em | data_br }} · por {{ a.vitrine_nome or (a.vendedor_nome | primeiro_nome) }}</p>
       </div>
     </article>
   </li>
@@ -101,4 +101,75 @@
       </p>
     </article>
   </li>
+{% endmacro %}
+
+{# Telefone que o próprio usuário decidiu publicar (opcional), com link de WhatsApp. #}
+{% macro contato_publico(telefone, whatsapp) %}
+  {% if telefone %}
+    <p class="contato">
+      <span aria-hidden="true">📞</span> <a href="tel:+55{{ telefone }}">{{ telefone | telefone }}</a>
+      {% if whatsapp %} · <a href="{{ link_whatsapp(telefone) }}" rel="noopener noreferrer" target="_blank">Conversar no WhatsApp</a>{% endif %}
+    </p>
+  {% endif %}
+{% endmacro %}
+
+{# Card de produtor no diretório (RF26, RF30). #}
+{% macro card_produtor(p, categorias) %}
+  <li class="card card--perfil">
+    <article>
+      <div class="perfil-mini">
+        {% if p.foto %}<img class="perfil-mini__foto" src="{{ url_for('anuncios.foto', nome=p.foto) }}" alt="" width="64" height="64" loading="lazy">
+        {% else %}<span class="perfil-mini__foto perfil-mini__foto--vazia" aria-hidden="true">🌱</span>{% endif %}
+        <div>
+          <h3 class="card__titulo"><a href="{{ url_for('perfis.vitrine', usuario_id=p.usuario_id) }}">{{ p.nome_vitrine }}</a></h3>
+          <p class="card__meta"><span aria-hidden="true">📍</span> {{ p.municipio_nome }}/{{ p.municipio_uf }}{% if p.regiao_nome and p.regiao_nome != p.municipio_nome %} · região de {{ p.regiao_nome }}{% endif %}</p>
+        </div>
+      </div>
+      {% if categorias %}<p class="card__suave">{{ categorias | join(' · ') }}</p>{% endif %}
+      <ul class="selos">
+        {% for chave, rotulo in FORMAS_VENDA.items() %}{% if p[chave] %}<li class="selo">{{ rotulo }}</li>{% endif %}{% endfor %}
+        {% if p.organico != 'nao' %}<li class="selo selo--organico">Orgânico (declarado)</li>{% endif %}
+      </ul>
+      <p class="card__rodape card__suave">{{ p.produtos_ativos }} produto{{ '' if p.produtos_ativos == 1 else 's' }} à venda</p>
+    </article>
+  </li>
+{% endmacro %}
+
+{# Card de comércio no diretório para produtores (RF27, RF30). #}
+{% macro card_comercio(c, interesses) %}
+  <li class="card card--perfil">
+    <article>
+      <p class="card__meta">{{ TIPOS_COMERCIO[c.tipo] }}</p>
+      <h3 class="card__titulo"><a href="{{ url_for('perfis.comercio', usuario_id=c.usuario_id) }}">{{ c.nome_fantasia }}</a></h3>
+      <p class="card__suave"><span aria-hidden="true">📍</span> {{ c.municipio_nome }}/{{ c.municipio_uf }}{% if c.regiao_nome and c.regiao_nome != c.municipio_nome %} · região de {{ c.regiao_nome }}{% endif %}</p>
+      {% if interesses %}<p>Compra: {{ interesses | join(', ') }}</p>{% endif %}
+      {% if c.volume_compra %}<p class="card__suave">{{ c.volume_compra }}</p>{% endif %}
+      {% if c.verificado_em %}<ul class="selos"><li class="selo selo--verificado">Verificado</li></ul>{% endif %}
+    </article>
+  </li>
+{% endmacro %}
+
+{# Campo "perto de" (cidade de referência) e "só minha região", usado nos diretórios. #}
+{% macro filtro_regiao(referencia, so_regiao, erro_perto, municipios) %}
+  <div class="campo{% if erro_perto %} campo--erro{% endif %}">
+    <label class="campo__rotulo" for="perto">Perto de</label>
+    <input class="campo__entrada" id="perto" name="perto" list="lista-municipios" autocomplete="off"
+           value="{{ (referencia.nome ~ '/' ~ referencia.uf) if referencia else '' }}" placeholder="Ex.: Uberaba/MG"{% if erro_perto %} aria-invalid="true" aria-describedby="perto-erro"{% endif %}>
+    <datalist id="lista-municipios">{% for municipio in municipios %}<option value="{{ municipio }}">{% endfor %}</datalist>
+    {% if erro_perto %}<p class="campo__erro" id="perto-erro">{{ erro_perto }}</p>{% endif %}
+  </div>
+  {% if referencia and referencia.regiao_nome %}
+    <label class="opcao opcao--filtro"><input type="checkbox" name="regiao" value="1"{% if so_regiao %} checked{% endif %}> <span>Só a região de {{ referencia.regiao_nome }}</span></label>
+  {% endif %}
+{% endmacro %}
+
+{# Paginação com os filtros atuais. #}
+{% macro paginacao(endpoint, pagina, paginas, args) %}
+  {% if paginas > 1 %}
+    <nav class="paginacao" aria-label="Páginas de resultados">
+      {% if pagina > 1 %}<a class="botao botao--secundario" href="{{ url_for(endpoint, pagina=pagina - 1, **args) }}">Anterior</a>{% endif %}
+      <span>Página {{ pagina }} de {{ paginas }}</span>
+      {% if pagina < paginas %}<a class="botao botao--secundario" href="{{ url_for(endpoint, pagina=pagina + 1, **args) }}">Próxima</a>{% endif %}
+    </nav>
+  {% endif %}
 {% endmacro %}

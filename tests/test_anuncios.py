@@ -8,12 +8,12 @@ from PIL import Image
 
 from app.db import get_db
 
-from .conftest import cliente_logado, criar_usuario, token_csrf
+from .conftest import cliente_logado, criar_produtor, criar_usuario, token_csrf
 
 DAQUI_10 = date.today() + timedelta(days=10)
-TRATORES, GRAOS, BOVINOS = 30, 10, 20
-UNIDADE_UN, UNIDADE_SC60 = 7, 3
-ATRIBUTO_RACA, ATRIBUTO_MARCA, ATRIBUTO_ANO = 3, 6, 8
+QUEIJOS, GRAOS, BOVINOS, OVOS = 31, 10, 20, 32
+UNIDADE_KG, UNIDADE_SC60, UNIDADE_DZ = 1, 3, 11
+ATRIBUTO_RACA, ATRIBUTO_IDADE, ATRIBUTO_INSPECAO, ATRIBUTO_REGISTRO = 3, 4, 6, 7
 
 
 def jpeg(largura=2000, altura=1500, com_gps=True):
@@ -37,6 +37,7 @@ def png():
 @pytest.fixture
 def pessoas(app):
     vendedor = criar_usuario(app, "José Carlos Pereira", "jose@exemplo.com")
+    criar_produtor(app, vendedor, "Queijaria Serra Azul")
     comprador = criar_usuario(app, "Lúcia Helena Martins", "lucia@exemplo.com")
     outro = criar_usuario(app, "Pedro Alves", "pedro@exemplo.com")
     return {
@@ -49,16 +50,15 @@ def pessoas(app):
 def anunciar(cliente, fotos=(), **mudancas):
     dados = {
         "csrf_token": token_csrf(cliente, "/anuncios/novo"),
-        "titulo": "Trator Valtra A750",
-        "categoria_id": TRATORES,
-        "descricao": "Revisado, pneus novos.",
-        "preco": "125.000,00",
-        "unidade_id": UNIDADE_UN,
-        "quantidade": "1",
-        "condicao": "usado",
+        "titulo": "Queijo minas artesanal",
+        "categoria_id": QUEIJOS,
+        "descricao": "Maturado por 22 dias.",
+        "preco": "1.048,00",
+        "unidade_id": UNIDADE_KG,
+        "quantidade": "100",
         "municipio": "Uberaba/MG",
-        f"atributo-{ATRIBUTO_MARCA}": "Valtra",
-        f"atributo-{ATRIBUTO_ANO}": "2014",
+        f"atributo-{ATRIBUTO_INSPECAO}": "Selo ARTE",
+        f"atributo-{ATRIBUTO_REGISTRO}": "ARTE 123",
     }
     dados.update(mudancas)
     dados["fotos"] = [(BytesIO(conteudo), nome) for nome, conteudo in fotos]
@@ -83,7 +83,7 @@ def arquivos_na_pasta(app):
 def propor(cliente, anuncio_id, **mudancas):
     url = f"/anuncios/{anuncio_id}/proposta"
     dados = {
-        "csrf_token": token_csrf(cliente, url), "preco": "120.000,00", "quantidade": "1",
+        "csrf_token": token_csrf(cliente, url), "preco": "1.000,00", "quantidade": "10",
         "prazo_entrega": DAQUI_10.isoformat(), "transporte": "comprador_retira", "validade": "", "observacao": "",
     }
     dados.update(mudancas)
@@ -98,7 +98,7 @@ def postar(cliente, url, pagina):
 
 def test_publicar_com_foto_remove_exif_e_redimensiona(app, pessoas):
     _, vendedor = pessoas["vendedor"]
-    anuncio_id = id_criado(anunciar(vendedor, fotos=[("trator.jpg", jpeg()), ("lateral.png", png())]))
+    anuncio_id = id_criado(anunciar(vendedor, fotos=[("queijo.jpg", jpeg()), ("lateral.png", png())]))
     fotos = arquivos_na_pasta(app)
     assert len(fotos) == 2 and all(nome.endswith(".jpg") and len(nome) == 36 for nome in fotos)
     with Image.open(os.path.join(app.config["PASTA_FOTOS"], fotos[0])) as salva:
@@ -106,12 +106,13 @@ def test_publicar_com_foto_remove_exif_e_redimensiona(app, pessoas):
         assert max(salva.size) <= 1280
         assert dict(salva.getexif()) == {}  # sem GPS nem fabricante
     pagina = vendedor.get(f"/anuncios/{anuncio_id}").get_data(as_text=True)
-    assert "R$ 125.000,00" in pagina and "Valtra" in pagina and "2014" in pagina
+    assert "R$ 1.048,00" in pagina and "Selo ARTE" in pagina and "ARTE 123" in pagina
+    assert "Pode ser vendido em todo o país" in pagina
 
 
 def test_foto_servida_com_tipo_correto(app, pessoas, client):
     _, vendedor = pessoas["vendedor"]
-    id_criado(anunciar(vendedor, fotos=[("trator.jpg", jpeg())]))
+    id_criado(anunciar(vendedor, fotos=[("queijo.jpg", jpeg())]))
     nome = arquivos_na_pasta(app)[0]
     resposta = client.get(f"/fotos/{nome}")
     assert resposta.status_code == 200
@@ -155,36 +156,62 @@ def test_preco_opcional_vira_a_combinar(pessoas):
 
 # ---------- campos por categoria (RF05) ----------
 
-def test_atributo_obrigatorio_da_categoria(app, pessoas):
+def test_inspecao_obrigatoria_em_origem_animal(app, pessoas):
     _, vendedor = pessoas["vendedor"]
-    resposta = anunciar(vendedor, **{f"atributo-{ATRIBUTO_MARCA}": ""})
-    assert "Informe marca." in resposta.get_data(as_text=True)
+    resposta = anunciar(vendedor, **{f"atributo-{ATRIBUTO_INSPECAO}": ""})
+    assert "Informe serviço de inspeção." in resposta.get_data(as_text=True)
     assert consultar(app, "SELECT COUNT(*) FROM anuncio")[0] == 0
 
 
-def test_ano_invalido(pessoas):
+def test_inspecao_fora_da_lista(app, pessoas):
     _, vendedor = pessoas["vendedor"]
-    resposta = anunciar(vendedor, **{f"atributo-{ATRIBUTO_ANO}": "1800"})
-    assert "Informe um ano entre 1900" in resposta.get_data(as_text=True)
+    resposta = anunciar(vendedor, **{f"atributo-{ATRIBUTO_INSPECAO}": "Inspecionado pelo vizinho"})
+    assert "Escolha uma das opções." in resposta.get_data(as_text=True)
+
+
+@pytest.mark.parametrize("servico, aviso", [
+    ("SIM (municipal)", "pode ser vendido só dentro de Uberaba/MG"),
+    ("SIE (estadual)", "pode ser vendido só dentro de MG"),
+    ("Sem registro: venda só para estabelecimento inspecionado", "Não é para o consumidor final"),
+], ids=["sim", "sie", "sem-registro"])
+def test_aviso_de_area_de_venda_pela_inspecao(pessoas, client, servico, aviso):
+    _, vendedor = pessoas["vendedor"]
+    anuncio_id = id_criado(anunciar(vendedor, **{f"atributo-{ATRIBUTO_INSPECAO}": servico}))
+    assert aviso in client.get(f"/anuncios/{anuncio_id}").get_data(as_text=True)
+
+
+def test_numero_invalido_no_atributo(pessoas):
+    _, vendedor = pessoas["vendedor"]
+    resposta = anunciar(vendedor, titulo="Novilhas nelore", categoria_id=BOVINOS, unidade_id=6, quantidade="20",
+                        **{f"atributo-{ATRIBUTO_IDADE}": "doze"})
+    assert "Use só números" in resposta.get_data(as_text=True)
 
 
 def test_atributos_de_outra_categoria_sao_ignorados(app, pessoas):
     _, vendedor = pessoas["vendedor"]
-    # "Raça" é de Animais. Num anúncio de trator, o campo enviado é descartado.
+    # "Raça" é de Pecuária. Num anúncio de queijo, o campo enviado é descartado.
     anuncio_id = id_criado(anunciar(vendedor, **{f"atributo-{ATRIBUTO_RACA}": "Nelore"}))
     with app.app_context():
         salvos = {linha[0] for linha in get_db().execute(
             "SELECT atributo_id FROM anuncio_atributo WHERE anuncio_id = ?", (anuncio_id,))}
-    assert salvos == {ATRIBUTO_MARCA, ATRIBUTO_ANO}
+    assert salvos == {ATRIBUTO_INSPECAO, ATRIBUTO_REGISTRO}
 
 
 def test_subcategoria_herda_atributos_da_principal(app, pessoas):
     _, vendedor = pessoas["vendedor"]
     anuncio_id = id_criado(anunciar(
-        vendedor, titulo="Novilhas nelore", categoria_id=BOVINOS, unidade_id=6, quantidade="20", condicao="nao_se_aplica",
-        **{f"atributo-{ATRIBUTO_RACA}": "Nelore", f"atributo-{ATRIBUTO_MARCA}": ""},
+        vendedor, titulo="Novilhas nelore", categoria_id=BOVINOS, unidade_id=6, quantidade="20",
+        **{f"atributo-{ATRIBUTO_RACA}": "Nelore", f"atributo-{ATRIBUTO_INSPECAO}": ""},
     ))
     assert consultar(app, "SELECT valor FROM anuncio_atributo WHERE anuncio_id = ?", anuncio_id)[0] == "Nelore"
+
+
+def test_anunciar_exige_vitrine(app):
+    sem_vitrine = criar_usuario(app, "Maria Sem Vitrine", "maria@exemplo.com")
+    cliente = cliente_logado(app, sem_vitrine)
+    resposta = cliente.get("/anuncios/novo")
+    assert resposta.status_code == 302
+    assert resposta.headers["Location"].startswith("/minha-vitrine?next=")
 
 
 # ---------- busca e filtros (RF06) ----------
@@ -192,28 +219,28 @@ def test_subcategoria_herda_atributos_da_principal(app, pessoas):
 def test_busca_e_filtros(pessoas, client):
     _, vendedor = pessoas["vendedor"]
     anunciar(vendedor)
-    anunciar(vendedor, titulo="Trator Massey 275 novo", preco="210.000,00", condicao="novo")
+    anunciar(vendedor, titulo="Ovos caipira", categoria_id=OVOS, unidade_id=UNIDADE_DZ, preco="2.500,00")
     anunciar(vendedor, titulo="Milho em grão", categoria_id=GRAOS, unidade_id=UNIDADE_SC60, preco="70,00",
-             quantidade="500", condicao="nao_se_aplica", municipio="Goiânia/GO")
+             quantidade="500", municipio="Goiânia/GO")
 
     def pagina(consulta):
         return client.get("/anuncios" + consulta).get_data(as_text=True)
 
     assert "Mostrando 1–3 de 3 anúncios" in pagina("")
-    assert "Massey" in pagina("?condicao=novo") and "Valtra" not in pagina("?condicao=novo")
-    assert "Milho" in pagina("?uf=GO") and "Valtra" not in pagina("?uf=GO")
-    faixa = pagina("?preco_min=100.000&preco_max=150.000")
-    assert "Valtra" in faixa and "Massey" not in faixa and "Milho" not in faixa
+    assert "Ovos caipira" in pagina(f"?categoria={OVOS}") and "Queijo minas" not in pagina(f"?categoria={OVOS}")
+    assert "Milho" in pagina("?uf=GO") and "Queijo minas" not in pagina("?uf=GO")
+    faixa = pagina("?preco_min=1.000&preco_max=2.000")
+    assert "Queijo minas" in faixa and "Ovos caipira" not in faixa and "Milho" not in faixa
     menor = pagina("?ordem=menor_preco")
-    assert menor.index("Milho") < menor.index("Valtra") < menor.index("Massey")
-    assert "Nenhum anúncio com esses filtros" in pagina("?q=colheitadeira")
+    assert menor.index("Milho em") < menor.index("Queijo minas") < menor.index("Ovos caipira")
+    assert "Nenhum anúncio com esses filtros" in pagina("?q=mandioca")
     assert "Milho" in pagina("?q=GRAO")  # sem diferenciar acento e maiúsculas
 
 
 def test_preco_invalido_no_filtro_e_ignorado(pessoas, client):
     _, vendedor = pessoas["vendedor"]
     anunciar(vendedor)
-    assert "Valtra" in client.get("/anuncios?preco_min=abc").get_data(as_text=True)
+    assert "Queijo minas" in client.get("/anuncios?preco_min=abc").get_data(as_text=True)
 
 
 # ---------- situação do anúncio (RF16) ----------
@@ -228,7 +255,7 @@ def test_pausar_reativar_e_encerrar(app, pessoas, client):
     postar(vendedor, f"/anuncios/{anuncio_id}/pausar", pagina)
     assert consultar(app, "SELECT status FROM anuncio")[0] == "pausado"
     assert consultar(app, "SELECT status FROM proposta")[0] == "nao_selecionada"
-    assert "Valtra" not in client.get("/anuncios").get_data(as_text=True)
+    assert "Queijo minas" not in client.get("/anuncios").get_data(as_text=True)
 
     postar(vendedor, f"/anuncios/{anuncio_id}/reativar", pagina)
     assert consultar(app, "SELECT status FROM anuncio")[0] == "ativo"
@@ -243,16 +270,16 @@ def test_editar_remove_e_adiciona_fotos(app, pessoas):
     removida = consultar(app, "SELECT id, arquivo FROM foto_anuncio ORDER BY id LIMIT 1")
     url = f"/anuncios/{anuncio_id}/editar"
     dados = {
-        "csrf_token": token_csrf(vendedor, url), "titulo": "Trator Valtra A750 revisado", "categoria_id": TRATORES,
-        "descricao": "", "preco": "120.000,00", "unidade_id": UNIDADE_UN, "quantidade": "1", "condicao": "usado",
-        "municipio": "Uberaba/MG", f"atributo-{ATRIBUTO_MARCA}": "Valtra", "remover_foto": str(removida["id"]),
+        "csrf_token": token_csrf(vendedor, url), "titulo": "Queijo minas curado", "categoria_id": QUEIJOS,
+        "descricao": "", "preco": "1.200,00", "unidade_id": UNIDADE_KG, "quantidade": "1",
+        "municipio": "Uberaba/MG", f"atributo-{ATRIBUTO_INSPECAO}": "SIF (federal)", "remover_foto": str(removida["id"]),
         "fotos": [(BytesIO(png()), "nova.png")],
     }
     assert vendedor.post(url, data=dados, content_type="multipart/form-data").status_code == 302
     assert consultar(app, "SELECT COUNT(*) FROM foto_anuncio")[0] == 2
     assert removida["arquivo"] not in arquivos_na_pasta(app)  # arquivo apagado do disco
     assert len(arquivos_na_pasta(app)) == 2
-    assert consultar(app, "SELECT preco_centavos FROM anuncio")[0] == 12_000_000
+    assert consultar(app, "SELECT preco_centavos FROM anuncio")[0] == 120_000
 
 
 # ---------- propostas de compra (RF18) ----------
@@ -265,13 +292,13 @@ def test_proposta_de_compra_e_aceite(app, pessoas):
     pagina = f"/anuncios/{anuncio_id}"
 
     assert propor(comprador, anuncio_id).status_code == 302
-    propor(outro, anuncio_id, preco="118.000,00")
+    propor(outro, anuncio_id, preco="980,00")
     assert consultar(app, "SELECT tipo FROM notificacao WHERE usuario_id = ?", vendedor_id)[0] == "nova_proposta"
     tela_vendedor = vendedor.get(pagina).get_data(as_text=True)
     assert "Propostas de compra (2)" in tela_vendedor
     assert "Lúcia" in tela_vendedor and "Martins" not in tela_vendedor
 
-    proposta_id = consultar(app, "SELECT id FROM proposta WHERE preco_unitario_centavos = 12000000")[0]
+    proposta_id = consultar(app, "SELECT id FROM proposta WHERE preco_unitario_centavos = 100000")[0]
     postar(vendedor, f"/anuncios/propostas/{proposta_id}/aceitar", pagina)
     assert consultar(app, "SELECT status FROM proposta WHERE id = ?", proposta_id)[0] == "aceita"
     assert consultar(app, "SELECT status FROM anuncio")[0] == "ativo"  # pode continuar vendendo
@@ -284,7 +311,7 @@ def test_proposta_de_compra_e_aceite(app, pessoas):
 
 
 @pytest.mark.parametrize("mudanca, mensagem", [
-    ({"quantidade": "2"}, "maior que a quantidade disponível"),
+    ({"quantidade": "200"}, "maior que a quantidade disponível"),
     ({"prazo_entrega": (date.today() - timedelta(days=1)).isoformat()}, "já passou"),
     ({"preco": "-5"}, "maior que zero"),
 ])
@@ -367,6 +394,6 @@ def test_painel_e_inicio_mostram_anuncios(pessoas, client):
     anuncio_id = id_criado(anunciar(vendedor))
     propor(comprador, anuncio_id)
     painel_vendedor = vendedor.get("/painel").get_data(as_text=True)
-    assert "Trator Valtra A750" in painel_vendedor and "1 proposta de compra para responder" in painel_vendedor
+    assert "Queijo minas artesanal" in painel_vendedor and "1 proposta de compra para responder" in painel_vendedor
     assert "Compra em anúncio" in comprador.get("/painel").get_data(as_text=True)
     assert "Anúncios recentes" in client.get("/").get_data(as_text=True)

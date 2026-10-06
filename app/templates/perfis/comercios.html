@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "_macros.html" import card_comercio, filtro_regiao, paginacao %}
+{% block titulo %}Comércios{% endblock %}
+{% block conteudo %}
+<section class="secao">
+  <div class="cabecalho-secao">
+    <div>
+      <h1>Comércios</h1>
+      <p class="texto-apoio">Mercados, restaurantes, distribuidores e outros comércios {% if referencia %}perto de {{ referencia.nome }}/{{ referencia.uf }}{% else %}da região{% endif %} que compram o que você produz.</p>
+    </div>
+  </div>
+
+  <details class="filtros"{% if filtros_ativos or erro_perto or not referencia %} open{% endif %}>
+    <summary class="filtros__resumo">Filtrar{% if filtros_ativos %} (filtros ativos){% endif %}</summary>
+    <form class="filtros__form filtros__form--anuncios" method="get" action="{{ url_for('perfis.comercios') }}" role="search">
+      <div class="campo">
+        <label class="campo__rotulo" for="q">Buscar pelo nome</label>
+        <input class="campo__entrada" id="q" name="q" type="search" value="{{ termo }}">
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="tipo">Tipo</label>
+        <select class="campo__entrada" id="tipo" name="tipo">
+          <option value="">Todos</option>
+          {% for chave, rotulo in TIPOS_COMERCIO.items() %}<option value="{{ chave }}"{% if tipo == chave %} selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="categoria">Compra</label>
+        <select class="campo__entrada" id="categoria" name="categoria">
+          <option value="">Qualquer produto</option>
+          {% for grupo, opcoes in categorias.items() %}
+            <optgroup label="{{ grupo }}">
+              {% for valor, rotulo in opcoes %}<option value="{{ valor }}"{% if categoria == valor %} selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+            </optgroup>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="uf">Estado</label>
+        <select class="campo__entrada" id="uf" name="uf">
+          <option value="">Todos</option>
+          {% for sigla in ufs %}<option value="{{ sigla }}"{% if uf == sigla %} selected{% endif %}>{{ sigla }}</option>{% endfor %}
+        </select>
+      </div>
+      {{ filtro_regiao(referencia, so_regiao, erro_perto, municipios) }}
+      <div class="filtros__acoes">
+        <button class="botao" type="submit">Aplicar</button>
+        {% if filtros_ativos %}<a class="botao botao--secundario" href="{{ url_for('perfis.comercios') }}">Limpar filtros</a>{% endif %}
+      </div>
+    </form>
+  </details>
+
+  <p class="contagem" role="status">
+    {% if total %}{{ total }} comércio{{ '' if total == 1 else 's' }}{% if referencia %}, dos mais perto de {{ referencia.nome }} para os mais longe{% endif %}{% else %}Nenhum comércio encontrado{% endif %}
+  </p>
+
+  {% if comercios %}
+    <ul class="cards">{% for c in comercios %}{{ card_comercio(c, interesses_por_comercio.get(c.usuario_id, [])) }}{% endfor %}</ul>
+  {% else %}
+    <div class="vazio-bloco">
+      <p>{% if filtros_ativos %}Nenhum comércio com esses filtros. Tente outra busca ou limpe os filtros.{% else %}Ainda não há comércios cadastrados.{% endif %}</p>
+      <p>Veja também as <a href="{{ url_for('encomendas.lista') }}">encomendas abertas</a>.</p>
+    </div>
+  {% endif %}
+
+  {{ paginacao('perfis.comercios', pagina, paginas, {'q': termo or None, 'tipo': tipo or None, 'categoria': categoria, 'uf': uf or None, 'regiao': '1' if so_regiao else None}) }}
+</section>
+{% endblock %}

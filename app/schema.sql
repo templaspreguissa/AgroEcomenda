@@ -13,16 +13,29 @@ DROP TABLE IF EXISTS encomenda;
 DROP TABLE IF EXISTS anuncio_atributo;
 DROP TABLE IF EXISTS foto_anuncio;
 DROP TABLE IF EXISTS anuncio;
+DROP TABLE IF EXISTS comercio_interesse;
+DROP TABLE IF EXISTS perfil_comercio;
+DROP TABLE IF EXISTS perfil_produtor;
 DROP TABLE IF EXISTS unidade_medida;
 DROP TABLE IF EXISTS atributo_categoria;
 DROP TABLE IF EXISTS categoria;
 DROP TABLE IF EXISTS usuario;
 DROP TABLE IF EXISTS municipio;
+DROP TABLE IF EXISTS regiao_imediata;
+
+-- Região Geográfica Imediata do IBGE (2017): cidades próximas onde a população
+-- busca bens e serviços. É o recorte de "minha região" nas buscas.
+CREATE TABLE regiao_imediata (
+    id   INTEGER PRIMARY KEY,
+    nome TEXT NOT NULL,
+    uf   TEXT NOT NULL CHECK (length(uf) = 2)
+) STRICT;
 
 CREATE TABLE municipio (
-    codigo_ibge INTEGER PRIMARY KEY,
-    nome        TEXT NOT NULL,
-    uf          TEXT NOT NULL CHECK (length(uf) = 2)
+    codigo_ibge        INTEGER PRIMARY KEY,
+    nome               TEXT    NOT NULL,
+    uf                 TEXT    NOT NULL CHECK (length(uf) = 2),
+    regiao_imediata_id INTEGER REFERENCES regiao_imediata(id)
 ) STRICT;
 
 CREATE TABLE usuario (
@@ -63,6 +76,57 @@ CREATE TABLE unidade_medida (
     nome  TEXT NOT NULL
 ) STRICT;
 
+-- Perfil de produtor: a vitrine pública de quem produz (exigido para anunciar).
+CREATE TABLE perfil_produtor (
+    usuario_id        INTEGER PRIMARY KEY REFERENCES usuario(id),
+    nome_vitrine      TEXT    NOT NULL,
+    nome_busca        TEXT    NOT NULL,
+    descricao         TEXT    NOT NULL DEFAULT '',
+    municipio_id      INTEGER NOT NULL REFERENCES municipio(codigo_ibge),
+    vende_retirada    INTEGER NOT NULL DEFAULT 0 CHECK (vende_retirada IN (0, 1)),
+    vende_entrega     INTEGER NOT NULL DEFAULT 0 CHECK (vende_entrega IN (0, 1)),
+    vende_feira       INTEGER NOT NULL DEFAULT 0 CHECK (vende_feira IN (0, 1)),
+    vende_envio       INTEGER NOT NULL DEFAULT 0 CHECK (vende_envio IN (0, 1)),
+    onde_encontrar    TEXT    NOT NULL DEFAULT '',
+    organico          TEXT    NOT NULL DEFAULT 'nao' CHECK (organico IN ('nao', 'certificado', 'ocs')),
+    organico_registro TEXT    NOT NULL DEFAULT '',
+    telefone_publico  TEXT    CHECK (telefone_publico IS NULL OR length(telefone_publico) IN (10, 11)),
+    telefone_whatsapp INTEGER NOT NULL DEFAULT 0 CHECK (telefone_whatsapp IN (0, 1)),
+    foto              TEXT    UNIQUE,
+    status            TEXT    NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'oculto')),
+    criado_em         TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em     TEXT,
+    CHECK (vende_retirada + vende_entrega + vende_feira + vende_envio >= 1)
+) STRICT;
+
+-- Perfil de comércio: loja, restaurante, distribuidor... Com CNPJ válido, vê preços para lojas.
+CREATE TABLE perfil_comercio (
+    usuario_id        INTEGER PRIMARY KEY REFERENCES usuario(id),
+    nome_fantasia     TEXT    NOT NULL,
+    nome_busca        TEXT    NOT NULL,
+    cnpj              TEXT    NOT NULL UNIQUE CHECK (length(cnpj) = 14),
+    tipo              TEXT    NOT NULL CHECK (tipo IN ('mercado', 'hortifruti', 'restaurante', 'padaria',
+                                                       'distribuidor', 'cooperativa', 'agroindustria',
+                                                       'emporio', 'outro')),
+    descricao         TEXT    NOT NULL DEFAULT '',
+    municipio_id      INTEGER NOT NULL REFERENCES municipio(codigo_ibge),
+    volume_compra     TEXT    NOT NULL DEFAULT '',
+    telefone_publico  TEXT    CHECK (telefone_publico IS NULL OR length(telefone_publico) IN (10, 11)),
+    telefone_whatsapp INTEGER NOT NULL DEFAULT 0 CHECK (telefone_whatsapp IN (0, 1)),
+    verificado_em     TEXT,
+    verificado_por    INTEGER REFERENCES usuario(id),
+    status            TEXT    NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'oculto')),
+    criado_em         TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em     TEXT
+) STRICT;
+
+-- O que o comércio costuma comprar (categorias), para os produtores o encontrarem.
+CREATE TABLE comercio_interesse (
+    usuario_id   INTEGER NOT NULL REFERENCES perfil_comercio(usuario_id),
+    categoria_id INTEGER NOT NULL REFERENCES categoria(id),
+    PRIMARY KEY (usuario_id, categoria_id)
+) STRICT;
+
 CREATE TABLE anuncio (
     id                    INTEGER PRIMARY KEY,
     vendedor_id           INTEGER NOT NULL REFERENCES usuario(id),
@@ -73,7 +137,6 @@ CREATE TABLE anuncio (
     preco_centavos        INTEGER CHECK (preco_centavos IS NULL OR preco_centavos > 0),
     unidade_id            INTEGER NOT NULL REFERENCES unidade_medida(id),
     quantidade_disponivel REAL    CHECK (quantidade_disponivel IS NULL OR quantidade_disponivel > 0),
-    condicao              TEXT    NOT NULL DEFAULT 'nao_se_aplica' CHECK (condicao IN ('novo', 'usado', 'nao_se_aplica')),
     municipio_id          INTEGER NOT NULL REFERENCES municipio(codigo_ibge),
     status                TEXT    NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'pausado', 'encerrado', 'oculto')),
     criado_em             TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -214,3 +277,6 @@ CREATE INDEX idx_proposta_anuncio  ON proposta (anuncio_id);
 CREATE INDEX idx_mensagem_proposta ON mensagem (proposta_id, enviada_em);
 CREATE INDEX idx_notificacao_usuario ON notificacao (usuario_id, lida_em);
 CREATE INDEX idx_municipio_uf      ON municipio (uf, nome);
+CREATE INDEX idx_municipio_regiao  ON municipio (regiao_imediata_id);
+CREATE INDEX idx_produtor_municipio ON perfil_produtor (municipio_id);
+CREATE INDEX idx_comercio_municipio ON perfil_comercio (municipio_id);

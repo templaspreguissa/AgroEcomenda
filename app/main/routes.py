@@ -4,6 +4,7 @@ from flask import g, render_template
 from .. import servicos
 from ..auth.routes import login_obrigatorio
 from ..db import get_db
+from ..perfis import dados as perfis
 from . import bp
 
 
@@ -80,4 +81,5 @@ def painel():
     return render_template(
         "main/painel.html", usuario=dados, minhas_encomendas=minhas_encomendas,
         propostas_enviadas=propostas_enviadas, meus_anuncios=meus_anuncios,
+        vitrine=perfis.perfil_produtor(db, usuario_id), loja=perfis.perfil_comercio(db, usuario_id),
     )

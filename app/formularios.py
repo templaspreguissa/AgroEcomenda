@@ -5,7 +5,7 @@ from wtforms.validators import DataRequired, ValidationError
 
 from .db import get_db
 from .localidades import resolver_municipio
-from .util import TRANSPORTE, ler_quantidade, reais_para_centavos
+from .util import TRANSPORTE, ler_quantidade, ler_telefone, reais_para_centavos
 
 ESCOLHAS_TRANSPORTE = list(TRANSPORTE.items())
 
@@ -39,11 +39,18 @@ def _inteiro_ou_nada(valor):
     return int(valor) if valor not in (None, "") else None
 
 
-class SelecaoObrigatoria(SelectField):
-    """<select> que começa em "Escolha..." e exige uma opção (evita publicar com a primeira opção sem querer)."""
+def texto_ou_nada(valor):
+    return str(valor) if valor not in (None, "") else None
 
-    def __init__(self, label=None, mensagem="Escolha uma opção.", **kwargs):
-        super().__init__(label, coerce=_inteiro_ou_nada, **kwargs)
+
+class SelecaoObrigatoria(SelectField):
+    """<select> que começa em "Escolha..." e exige uma opção (evita publicar com a primeira opção sem querer).
+
+    Por padrão as opções são números (ids). Para opções em texto, use coerce=texto_ou_nada.
+    """
+
+    def __init__(self, label=None, mensagem="Escolha uma opção.", coerce=_inteiro_ou_nada, **kwargs):
+        super().__init__(label, coerce=coerce, **kwargs)
         self.mensagem = mensagem
 
     def pre_validate(self, form):
@@ -101,3 +108,16 @@ class CampoMunicipio(StringField):
         self.codigo = resolver_municipio(get_db(), self.data)
         if self.codigo is None:
             self.errors.append("Escolha um município da lista, no formato Município/UF (ex.: Uberaba/MG).")
+
+
+class CampoTelefone(StringField):
+    """Telefone com DDD, opcional. Guarda só os dígitos em self.digitos (None se vazio)."""
+
+    def pre_validate(self, form):
+        self.digitos = None
+        if not self.data:
+            return
+        try:
+            self.digitos = ler_telefone(self.data)
+        except ValueError as erro:
+            raise ValidationError("Informe o telefone com DDD, por exemplo (34) 99999-0000.") from erro

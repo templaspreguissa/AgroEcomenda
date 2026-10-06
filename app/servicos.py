@@ -349,6 +349,7 @@ SQL_ANUNCIO = """
     SELECT a.*, u.sigla AS unidade_sigla, m.nome AS municipio_nome, m.uf AS municipio_uf,
            c.nome AS categoria_nome, c.categoria_pai_id AS categoria_pai_id,
            v.nome AS vendedor_nome, v.email AS vendedor_email, v.criado_em AS vendedor_desde,
+           pp.nome_vitrine AS vitrine_nome,
            (SELECT arquivo FROM foto_anuncio f WHERE f.anuncio_id = a.id ORDER BY f.ordem, f.id LIMIT 1) AS foto_principal,
            (SELECT COUNT(*) FROM proposta p WHERE p.anuncio_id = a.id AND p.status = 'pendente') AS propostas_pendentes
       FROM anuncio a
@@ -356,6 +357,7 @@ SQL_ANUNCIO = """
       JOIN municipio m      ON m.codigo_ibge = a.municipio_id
       JOIN categoria c      ON c.id = a.categoria_id
       JOIN usuario v        ON v.id = a.vendedor_id
+      LEFT JOIN perfil_produtor pp ON pp.usuario_id = a.vendedor_id
 """
 
 
@@ -410,12 +412,12 @@ def criar_anuncio(db, vendedor_id, dados, atributos, fotos):
     with db:
         cursor = db.execute(
             """INSERT INTO anuncio (vendedor_id, categoria_id, titulo, titulo_busca, descricao, preco_centavos,
-                                    unidade_id, quantidade_disponivel, condicao, municipio_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                                    unidade_id, quantidade_disponivel, municipio_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 vendedor_id, dados["categoria_id"], dados["titulo"], normalizar_busca(dados["titulo"]),
                 dados["descricao"], dados["preco_centavos"], dados["unidade_id"], dados["quantidade"],
-                dados["condicao"], dados["municipio_id"],
+                dados["municipio_id"],
             ),
         )
         anuncio_id = cursor.lastrowid
@@ -443,11 +445,11 @@ def editar_anuncio(db, anuncio, usuario_id, dados, atributos, fotos_novas, remov
         db.execute(
             """UPDATE anuncio
                   SET categoria_id = ?, titulo = ?, titulo_busca = ?, descricao = ?, preco_centavos = ?,
-                      unidade_id = ?, quantidade_disponivel = ?, condicao = ?, municipio_id = ?, atualizado_em = ?
+                      unidade_id = ?, quantidade_disponivel = ?, municipio_id = ?, atualizado_em = ?
                 WHERE id = ?""",
             (
                 dados["categoria_id"], dados["titulo"], normalizar_busca(dados["titulo"]), dados["descricao"],
-                dados["preco_centavos"], dados["unidade_id"], dados["quantidade"], dados["condicao"],
+                dados["preco_centavos"], dados["unidade_id"], dados["quantidade"],
                 dados["municipio_id"], agora_utc_texto(), anuncio["id"],
             ),
         )

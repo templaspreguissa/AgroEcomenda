@@ -36,7 +36,15 @@ def carregar_usuario():
     if usuario_id is None:
         return
     g.usuario = get_db().execute(
-        "SELECT id, nome, email, papel, tipo_pessoa, criado_em FROM usuario WHERE id = ? AND status = 'ativo'",
+        """SELECT u.id, u.nome, u.email, u.papel, u.tipo_pessoa, u.criado_em,
+                  COALESCE(u.municipio_id, pp.municipio_id, pc.municipio_id) AS municipio_id,
+                  pp.usuario_id IS NOT NULL AS tem_produtor,
+                  pc.usuario_id IS NOT NULL AS tem_comercio,
+                  pc.verificado_em IS NOT NULL AS comercio_verificado
+             FROM usuario u
+             LEFT JOIN perfil_produtor pp ON pp.usuario_id = u.id
+             LEFT JOIN perfil_comercio pc ON pc.usuario_id = u.id
+            WHERE u.id = ? AND u.status = 'ativo'""",
         (usuario_id,),
     ).fetchone()
     if g.usuario is None:
@@ -141,12 +149,27 @@ def _conferir_senha(senha_hash, senha):
 
 # ---------- rotas ----------
 
+def _proximo_passo_do_cadastro(usos):
+    """Depois de criar a conta, leva direto para criar a vitrine e/ou a loja, conforme a escolha."""
+    if "vender" in usos and "comercio" in usos:
+        return url_for("perfis.editar_produtor", next=url_for("perfis.editar_comercio"))
+    if "vender" in usos:
+        return url_for("perfis.editar_produtor")
+    if "comercio" in usos:
+        return url_for("perfis.editar_comercio")
+    if "consumo" in usos:
+        return url_for("perfis.produtores")
+    return url_for("main.painel")
+
+
 @bp.route("/cadastro", methods=["GET", "POST"])
 def cadastro():
     if g.usuario is not None:
         return redirect(url_for("main.painel"))
 
     form = CadastroForm()
+    if request.method == "GET" and request.args.get("uso") in ("vender", "comercio", "consumo"):
+        form.usos.data = [request.args["uso"]]
     if form.validate_on_submit():
         email = form.email.data.strip().lower()
         db = get_db()
@@ -170,7 +193,7 @@ def cadastro():
             _iniciar_sessao(cursor.lastrowid)
             log.info("cadastro concluido usuario_id=%s", cursor.lastrowid)
             flash("Conta criada. Boas-vindas ao AgroEncomenda!", "sucesso")
-            return redirect(url_for("main.painel"))
+            return redirect(_proximo_passo_do_cadastro(form.usos.data or []))
 
     return render_template("auth/cadastro.html", form=form)
 

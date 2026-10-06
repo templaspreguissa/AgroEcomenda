@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_macros.html" import campo, grupo_opcoes %}
+{% block titulo %}Meus dados{% endblock %}
+{% block conteudo %}
+<section class="secao secao--estreita">
+  <h1>Meus dados</h1>
+  <p class="texto-apoio">Até uma proposta ser aceita, os outros usuários veem só o seu primeiro nome e o município.</p>
+
+  <form class="formulario" method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ campo(form.nome, autocomplete='name', extras={'maxlength': 120}) }}
+    {{ grupo_opcoes(form.tipo_pessoa) }}
+    {{ campo(form.municipio, dica='Usado para mostrar primeiro o que está perto de você.', autocomplete='off', extras={'list': 'lista-municipios', 'placeholder': 'Ex.: Uberaba/MG'}) }}
+    <datalist id="lista-municipios">{% for municipio in municipios %}<option value="{{ municipio }}">{% endfor %}</datalist>
+    <button class="botao botao--largo" type="submit">Salvar</button>
+  </form>
+  <p><a href="{{ url_for('main.painel') }}">Voltar para o painel</a></p>
+</section>
+{% endblock %}

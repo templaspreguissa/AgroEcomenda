@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "_macros.html" import card_produtor, filtro_regiao, paginacao %}
+{% block titulo %}Produtores{% endblock %}
+{% block conteudo %}
+<section class="secao">
+  <div class="cabecalho-secao">
+    <div>
+      <h1>Produtores</h1>
+      <p class="texto-apoio">Quem produz {% if referencia %}perto de {{ referencia.nome }}/{{ referencia.uf }}{% else %}na sua região{% endif %}: veja a vitrine, o que cada um vende e como comprar.</p>
+    </div>
+    {% if g.usuario and g.usuario.tem_produtor %}
+      <a class="botao botao--secundario" href="{{ url_for('perfis.vitrine', usuario_id=g.usuario.id) }}">Minha vitrine</a>
+    {% else %}
+      <a class="botao" href="{{ url_for('perfis.editar_produtor') }}">Criar minha vitrine</a>
+    {% endif %}
+  </div>
+
+  <details class="filtros"{% if filtros_ativos or erro_perto or not referencia %} open{% endif %}>
+    <summary class="filtros__resumo">Filtrar{% if filtros_ativos %} (filtros ativos){% endif %}</summary>
+    <form class="filtros__form filtros__form--anuncios" method="get" action="{{ url_for('perfis.produtores') }}" role="search">
+      <div class="campo">
+        <label class="campo__rotulo" for="q">Buscar</label>
+        <input class="campo__entrada" id="q" name="q" type="search" value="{{ termo }}" placeholder="Nome ou produto, ex.: queijo">
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="categoria">Produz</label>
+        <select class="campo__entrada" id="categoria" name="categoria">
+          <option value="">Qualquer produto</option>
+          {% for grupo, opcoes in categorias.items() %}
+            <optgroup label="{{ grupo }}">
+              {% for valor, rotulo in opcoes %}<option value="{{ valor }}"{% if categoria == valor %} selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+            </optgroup>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="uf">Estado</label>
+        <select class="campo__entrada" id="uf" name="uf">
+          <option value="">Todos</option>
+          {% for sigla in ufs %}<option value="{{ sigla }}"{% if uf == sigla %} selected{% endif %}>{{ sigla }}</option>{% endfor %}
+        </select>
+      </div>
+      {{ filtro_regiao(referencia, so_regiao, erro_perto, municipios) }}
+      <div class="filtros__acoes">
+        <button class="botao" type="submit">Aplicar</button>
+        {% if filtros_ativos %}<a class="botao botao--secundario" href="{{ url_for('perfis.produtores') }}">Limpar filtros</a>{% endif %}
+      </div>
+    </form>
+  </details>
+
+  <p class="contagem" role="status">
+    {% if total %}{{ total }} produtor{{ '' if total == 1 else 'es' }}{% if referencia %}, dos mais perto de {{ referencia.nome }} para os mais longe{% endif %}{% else %}Nenhum produtor encontrado{% endif %}
+  </p>
+
+  {% if produtores %}
+    <ul class="cards">{% for p in produtores %}{{ card_produtor(p, categorias_por_produtor.get(p.usuario_id, [])) }}{% endfor %}</ul>
+  {% else %}
+    <div class="vazio-bloco">
+      <p>{% if filtros_ativos %}Nenhum produtor com esses filtros. Tente outra busca ou limpe os filtros.{% else %}Ainda não há produtores com vitrine.{% endif %}</p>
+      <p>Não achou? <a href="{{ url_for('encomendas.nova') }}">Publique uma encomenda</a> e receba propostas.</p>
+    </div>
+  {% endif %}
+
+  {{ paginacao('perfis.produtores', pagina, paginas, {'q': termo or None, 'categoria': categoria, 'uf': uf or None, 'regiao': '1' if so_regiao else None}) }}
+</section>
+{% endblock %}

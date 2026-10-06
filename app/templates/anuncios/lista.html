@@ -6,7 +6,7 @@
   <div class="cabecalho-secao">
     <div>
       <h1>Anúncios</h1>
-      <p class="texto-apoio">Produção, animais, máquinas, insumos e serviços à venda.</p>
+      <p class="texto-apoio">O que os produtores têm para vender: produção agrícola, animais, produtos de origem animal, processados e serviços rurais.</p>
     </div>
     <a class="botao" href="{{ url_for('anuncios.novo') }}">Anunciar</a>
   </div>
@@ -16,7 +16,7 @@
     <form class="filtros__form filtros__form--anuncios" method="get" action="{{ url_for('anuncios.lista') }}" role="search">
       <div class="campo">
         <label class="campo__rotulo" for="q">Buscar</label>
-        <input class="campo__entrada" id="q" name="q" type="search" value="{{ termo }}" placeholder="Ex.: trator, novilha, adubo">
+        <input class="campo__entrada" id="q" name="q" type="search" value="{{ termo }}" placeholder="Ex.: queijo, ovos, alface">
       </div>
       <div class="campo">
         <label class="campo__rotulo" for="categoria">Categoria</label>
@@ -34,14 +34,6 @@
         <select class="campo__entrada" id="uf" name="uf">
           <option value="">Todos</option>
           {% for sigla in ufs %}<option value="{{ sigla }}"{% if uf == sigla %} selected{% endif %}>{{ sigla }}</option>{% endfor %}
-        </select>
-      </div>
-      <div class="campo">
-        <label class="campo__rotulo" for="condicao">Condição</label>
-        <select class="campo__entrada" id="condicao" name="condicao">
-          <option value="">Todas</option>
-          <option value="novo"{% if condicao == 'novo' %} selected{% endif %}>Novo</option>
-          <option value="usado"{% if condicao == 'usado' %} selected{% endif %}>Usado</option>
         </select>
       </div>
       <div class="campo">
@@ -80,7 +72,7 @@
 
   {% if paginas > 1 %}
     <nav class="paginacao" aria-label="Páginas de resultados">
-      {% set args = {'q': termo or None, 'categoria': categoria, 'uf': uf or None, 'condicao': condicao or None,
+      {% set args = {'q': termo or None, 'categoria': categoria, 'uf': uf or None,
                      'preco_min': preco_min or None, 'preco_max': preco_max or None, 'ordem': ordem} %}
       {% if pagina > 1 %}<a class="botao botao--secundario" href="{{ url_for('anuncios.lista', pagina=pagina - 1, **args) }}">Anterior</a>{% endif %}
       <span>Página {{ pagina }} de {{ paginas }}</span>

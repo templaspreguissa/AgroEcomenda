@@ -11,7 +11,7 @@
 
     <fieldset class="etapa">
       <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">1</span> O que você vende</legend>
-      {{ campo(form.titulo, dica='Ex.: Trator Valtra A750 2014, novilhas nelore, milho em grão.', extras={'maxlength': 100}) }}
+      {{ campo(form.titulo, dica='Ex.: alface crespa, ovos caipira, queijo minas artesanal, milho em grão.', extras={'maxlength': 100}) }}
       {{ selecao(form.categoria_id, "Escolha a categoria") }}
 
       {% for principal_id, atributos in grupos_atributos.items() %}
@@ -39,7 +39,7 @@
         </fieldset>
       {% endfor %}
 
-      {{ campo(form.descricao, dica='Estado de conservação, qualidade, forma de pagamento aceita.', extras={'rows': 4, 'maxlength': 3000}) }}
+      {{ campo(form.descricao, dica='Qualidade, forma de cultivo ou criação, embalagem, forma de pagamento aceita.', extras={'rows': 4, 'maxlength': 3000}) }}
     </fieldset>
 
     <fieldset class="etapa">
@@ -49,7 +49,6 @@
         {{ selecao(form.unidade_id, "Escolha a unidade") }}
       </div>
       {{ campo(form.quantidade, extras={'inputmode': 'decimal', 'placeholder': 'Ex.: 500'}) }}
-      {{ grupo_opcoes(form.condicao) }}
       {{ campo(form.municipio, dica='Comece a digitar e escolha na lista. Formato: Município/UF.', autocomplete='off', extras={'list': 'lista-municipios', 'placeholder': 'Ex.: Uberaba/MG'}) }}
       <datalist id="lista-municipios">
         {% for municipio in municipios %}<option value="{{ municipio }}">{% endfor %}

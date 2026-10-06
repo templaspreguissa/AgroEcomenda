@@ -16,6 +16,11 @@ UNIDADES = {
     "ha": ("hectare", "hectares"),
     "h": ("hora", "horas"),
     "serv": ("serviço", "serviços"),
+    "dz": ("dúzia", "dúzias"),
+    "mc": ("maço", "maços"),
+    "cx": ("caixa", "caixas"),
+    "bdj": ("bandeja", "bandejas"),
+    "pct": ("pacote", "pacotes"),
 }
 
 TRANSPORTE = {
@@ -47,6 +52,31 @@ STATUS_ANUNCIO = {
     "pausado": "Pausado",
     "encerrado": "Encerrado",
     "oculto": "Oculto pela moderação",
+}
+
+TIPOS_COMERCIO = {
+    "mercado": "Mercado ou supermercado",
+    "hortifruti": "Hortifrúti ou sacolão",
+    "restaurante": "Restaurante, bar ou lanchonete",
+    "padaria": "Padaria ou confeitaria",
+    "distribuidor": "Distribuidor ou atacadista",
+    "cooperativa": "Cooperativa",
+    "agroindustria": "Agroindústria",
+    "emporio": "Empório, feira ou loja de produtos naturais",
+    "outro": "Outro tipo de comércio",
+}
+
+FORMAS_VENDA = {
+    "vende_retirada": "Retirada na propriedade ou no ponto de venda",
+    "vende_entrega": "Entrega na região",
+    "vende_feira": "Feira ou ponto fixo",
+    "vende_envio": "Envio para outras regiões (a combinar)",
+}
+
+ORGANICO = {
+    "nao": "Não",
+    "certificado": "Sim, com certificação",
+    "ocs": "Sim, venda direta com Organização de Controle Social (OCS)",
 }
 
 MESES = ["jan.", "fev.", "mar.", "abr.", "maio", "jun.", "jul.", "ago.", "set.", "out.", "nov.", "dez."]
@@ -142,6 +172,26 @@ def prazo_relativo(texto_data):
     return f"faltam {dias} dias"
 
 
+def ler_telefone(texto):
+    """'(34) 99999-0000' ou '+55 34 99999 0000' -> '34999990000'. Exige DDD. ValueError se inválido."""
+    digitos = re.sub(r"\D", "", texto or "")
+    if len(digitos) in (12, 13) and digitos.startswith("55"):
+        digitos = digitos[2:]
+    if len(digitos) not in (10, 11) or digitos[0] == "0":
+        raise ValueError("telefone inválido")
+    return digitos
+
+
+def formatar_telefone(digitos):
+    if not digitos:
+        return ""
+    return f"({digitos[:2]}) {digitos[2:-4]}-{digitos[-4:]}"
+
+
+def link_whatsapp(digitos):
+    return f"https://wa.me/55{digitos}"
+
+
 def primeiro_nome(nome):
     return (nome or "").split()[0] if (nome or "").split() else ""
 
@@ -158,3 +208,8 @@ def registrar_filtros(app):
     app.add_template_global(STATUS_ENCOMENDA, "STATUS_ENCOMENDA")
     app.add_template_global(STATUS_PROPOSTA, "STATUS_PROPOSTA")
     app.add_template_global(STATUS_ANUNCIO, "STATUS_ANUNCIO")
+    app.add_template_filter(formatar_telefone, "telefone")
+    app.add_template_global(link_whatsapp, "link_whatsapp")
+    app.add_template_global(TIPOS_COMERCIO, "TIPOS_COMERCIO")
+    app.add_template_global(FORMAS_VENDA, "FORMAS_VENDA")
+    app.add_template_global(ORGANICO, "ORGANICO")

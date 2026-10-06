@@ -1,6 +1,6 @@
 """Formulários de cadastro e login (Flask-WTF já inclui o token CSRF)."""
 from flask import current_app
-from wtforms import BooleanField, EmailField, PasswordField, RadioField, StringField
+from wtforms import BooleanField, EmailField, PasswordField, RadioField, SelectMultipleField, StringField, widgets
 from wtforms.validators import DataRequired, EqualTo, InputRequired, Length, Regexp, ValidationError
 
 from ..formularios import Formulario
@@ -23,9 +23,22 @@ SENHAS_COMUNS = {
 }
 
 
+USOS = {
+    "vender": "Vender o que eu produzo",
+    "comercio": "Comprar para o meu comércio (mercado, restaurante, distribuidor...)",
+    "consumo": "Comprar direto do produtor para consumo",
+}
+
+
+class CaixasDeSelecao(SelectMultipleField):
+    """Várias opções como caixas de seleção (checkbox), em vez de <select multiple>."""
+    widget = widgets.ListWidget(prefix_label=False)
+    option_widget = widgets.CheckboxInput()
+
+
 class CadastroForm(Formulario):
     nome = StringField(
-        "Nome ou nome da propriedade",
+        "Seu nome",
         validators=[DataRequired("Informe seu nome."), Length(2, 120, "Use entre 2 e 120 caracteres.")],
     )
     email = EmailField(
@@ -39,10 +52,11 @@ class CadastroForm(Formulario):
     )
     tipo_pessoa = RadioField(
         "Você é",
-        choices=[("PF", "Pessoa física (produtor, prestador de serviço)"), ("PJ", "Empresa ou cooperativa")],
+        choices=[("PF", "Pessoa física"), ("PJ", "Empresa ou cooperativa")],
         default="PF",
         validators=[InputRequired("Escolha uma opção.")],
     )
+    usos = CaixasDeSelecao("Como você vai usar o AgroEncomenda? (opcional)", choices=list(USOS.items()))
     senha = PasswordField(
         "Senha",
         validators=[DataRequired("Crie uma senha."), Length(max=128, message="Use no máximo 128 caracteres.")],

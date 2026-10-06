@@ -4,7 +4,7 @@
 {% block conteudo %}
 <section class="secao secao--estreita">
   <h1>Criar conta</h1>
-  <p class="texto-apoio">Com uma conta você pode vender e comprar. Leva menos de um minuto.</p>
+  <p class="texto-apoio">Uma conta serve para vender, comprar para o seu comércio e comprar para consumo. Leva menos de um minuto.</p>
 
   <form class="formulario" method="post" novalidate>
     {{ form.hidden_tag() }}
@@ -18,6 +18,14 @@
         <label class="opcao">{{ opcao() }} <span>{{ opcao.label.text }}</span></label>
       {% endfor %}
       {% if form.tipo_pessoa.errors %}<p class="campo__erro">{{ form.tipo_pessoa.errors[0] }}</p>{% endif %}
+    </fieldset>
+
+    <fieldset class="campo">
+      <legend class="campo__rotulo">{{ form.usos.label.text }}</legend>
+      <p class="campo__dica">Marque quantas quiser. Depois você pode mudar.</p>
+      {% for opcao in form.usos %}
+        <label class="opcao">{{ opcao() }} <span>{{ opcao.label.text }}</span></label>
+      {% endfor %}
     </fieldset>
 
     {{ campo(form.senha, dica='Pelo menos ' ~ config.SENHA_MINIMA ~ ' caracteres. Pode ser uma frase, como "milho verde na safra de março".', autocomplete='new-password', mostrar_senha=True) }}

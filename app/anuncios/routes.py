@@ -10,12 +10,13 @@ from ..atributos import atributos_por_principal, ler_atributos, valores_salvos
 from ..auth.routes import login_obrigatorio
 from ..db import get_db
 from ..encomendas.forms import PropostaForm
+from ..inspecao import aviso_inspecao
 from ..formularios import escolhas_categorias
 from ..fotos import NOME_VALIDO, FotoInvalida, apagar_fotos, arquivos_enviados, pasta_fotos, processar_foto
 from ..localidades import municipios_para_lista, rotulo_do_codigo, ufs_carregadas
 from ..util import formatar_numero, normalizar_busca, reais_para_centavos
 from . import bp
-from .forms import CONDICOES, AnuncioForm
+from .forms import AnuncioForm
 
 ORDENACOES = {
     "recentes": ("Mais recentes", "a.criado_em DESC, a.id DESC"),
@@ -67,14 +68,20 @@ def _reais_do_filtro(texto):
 
 @bp.route("/fotos/<nome>")
 def foto(nome):
-    """Serve a foto só se o nome for válido e o anúncio puder ser visto (fotos de anúncio oculto não vazam)."""
+    """Serve a foto só se o nome for válido e o anúncio (ou a vitrine) puder ser visto.
+
+    Fotos de anúncio ou vitrine oculta pela moderação não vazam pelo link direto.
+    """
     if not NOME_VALIDO.match(nome):
         abort(404)
     linha = get_db().execute(
-        "SELECT a.status, a.vendedor_id FROM foto_anuncio f JOIN anuncio a ON a.id = f.anuncio_id WHERE f.arquivo = ?",
-        (nome,),
+        """SELECT a.status, a.vendedor_id AS dono FROM foto_anuncio f JOIN anuncio a ON a.id = f.anuncio_id
+            WHERE f.arquivo = ?
+           UNION ALL
+           SELECT status, usuario_id FROM perfil_produtor WHERE foto = ?""",
+        (nome, nome),
     ).fetchone()
-    if linha is None or (linha["status"] == "oculto" and linha["vendedor_id"] != _usuario_id() and not _eh_admin()):
+    if linha is None or (linha["status"] == "oculto" and linha["dono"] != _usuario_id() and not _eh_admin()):
         abort(404)
     return send_from_directory(pasta_fotos(), nome, mimetype="image/jpeg", max_age=86400)
 
@@ -87,7 +94,6 @@ def lista():
     termo = (request.args.get("q") or "").strip()[:100]
     categoria = request.args.get("categoria", type=int)
     uf = (request.args.get("uf") or "").upper()[:2]
-    condicao = request.args.get("condicao") if request.args.get("condicao") in ("novo", "usado") else ""
     preco_min_texto = (request.args.get("preco_min") or "").strip()[:20]
     preco_max_texto = (request.args.get("preco_max") or "").strip()[:20]
     preco_min, preco_max = _reais_do_filtro(preco_min_texto), _reais_do_filtro(preco_max_texto)
@@ -105,9 +111,6 @@ def lista():
     if uf:
         condicoes.append("m.uf = ?")
         parametros.append(uf)
-    if condicao:
-        condicoes.append("a.condicao = ?")
-        parametros.append(condicao)
     if preco_min is not None:
         condicoes.append("a.preco_centavos >= ?")
         parametros.append(preco_min)
@@ -130,12 +133,12 @@ def lista():
         parametros + [por_pagina, (pagina - 1) * por_pagina],
     ).fetchall()
 
-    filtros_ativos = bool(termo or categoria or uf or condicao or preco_min_texto or preco_max_texto)
+    filtros_ativos = bool(termo or categoria or uf or preco_min_texto or preco_max_texto)
     return render_template(
         "anuncios/lista.html",
         anuncios=anuncios, total=total, pagina=pagina, paginas=paginas,
         inicio=(pagina - 1) * por_pagina + 1 if total else 0, fim=(pagina - 1) * por_pagina + len(anuncios),
-        termo=termo, categoria=categoria, uf=uf, condicao=condicao, ordem=ordem, ordenacoes=ORDENACOES,
+        termo=termo, categoria=categoria, uf=uf, ordem=ordem, ordenacoes=ORDENACOES,
         preco_min=preco_min_texto, preco_max=preco_max_texto,
         categorias=escolhas_categorias(db, rotulo_geral="Tudo em {nome}"), ufs=ufs_carregadas(db),
         filtros_ativos=filtros_ativos,
@@ -179,11 +182,14 @@ def _salvar_fotos(arquivos):
 @bp.route("/anuncios/novo", methods=["GET", "POST"])
 @login_obrigatorio
 def novo():
+    if not g.usuario["tem_produtor"]:
+        flash("Para anunciar, crie primeiro a sua vitrine de produtor. Leva um minuto.", "info")
+        return redirect(url_for("perfis.editar_produtor", next=request.path))
     db = get_db()
     form = AnuncioForm()
     valores, erros, erro_fotos = {}, {}, None
     if request.method == "GET":
-        linha = db.execute("SELECT municipio_id FROM usuario WHERE id = ?", (g.usuario["id"],)).fetchone()
+        linha = db.execute("SELECT municipio_id FROM perfil_produtor WHERE usuario_id = ?", (g.usuario["id"],)).fetchone()
         form.municipio.data = rotulo_do_codigo(db, linha["municipio_id"] if linha else None)
 
     if request.method == "POST":
@@ -236,7 +242,6 @@ def editar(anuncio_id):
         )
         form.unidade_id.data = anuncio["unidade_id"]
         form.quantidade.data = formatar_numero(anuncio["quantidade_disponivel"])
-        form.condicao.data = anuncio["condicao"]
         form.municipio.data = rotulo_do_codigo(db, anuncio["municipio_id"])
 
     if request.method == "POST":
@@ -308,11 +313,13 @@ def detalhe(anuncio_id):
         (anuncio["vendedor_id"],),
     ).fetchone()
 
+    atributos = valores_salvos(db, anuncio_id)
     return render_template(
         "anuncios/detalhe.html",
-        anuncio=anuncio, fotos=servicos.fotos_do_anuncio(db, anuncio_id), atributos=valores_salvos(db, anuncio_id),
+        anuncio=anuncio, fotos=servicos.fotos_do_anuncio(db, anuncio_id), atributos=atributos,
+        aviso_inspecao=aviso_inspecao(atributos, anuncio["municipio_nome"], anuncio["municipio_uf"]),
         propostas=propostas, minha_pendente=minha_pendente, sou_vendedor=sou_vendedor,
-        negocio_fechado=negocio_fechado, vendedor_municipio=vendedor_municipio, condicoes=CONDICOES,
+        negocio_fechado=negocio_fechado, vendedor_municipio=vendedor_municipio,
         pode_propor=bool(usuario_id) and not sou_vendedor and anuncio["status"] == "ativo" and minha_pendente is None,
     )
 

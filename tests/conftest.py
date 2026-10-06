@@ -8,7 +8,15 @@ from app.db import get_db, init_db
 SENHA_VALIDA = "milho verde na safra de março"
 
 
-MUNICIPIOS_TESTE = [(3170107, "Uberaba", "MG"), (3106200, "Belo Horizonte", "MG"), (5208707, "Goiânia", "GO")]
+# Regiões imediatas conferidas na API de Localidades do IBGE (outubro de 2026).
+REGIOES_TESTE = [(310055, "Uberaba", "MG"), (310001, "Belo Horizonte", "MG"), (520001, "Goiânia", "GO")]
+MUNICIPIOS_TESTE = [
+    (3170107, "Uberaba", "MG", 310055),
+    (3156908, "Sacramento", "MG", 310055),
+    (3106200, "Belo Horizonte", "MG", 310001),
+    (5208707, "Goiânia", "GO", 520001),
+]
+UBERABA, SACRAMENTO, BELO_HORIZONTE, GOIANIA = 3170107, 3156908, 3106200, 5208707
 
 
 @pytest.fixture
@@ -23,7 +31,10 @@ def app(tmp_path):
         init_db()
         db = get_db()
         with db:
-            db.executemany("INSERT INTO municipio (codigo_ibge, nome, uf) VALUES (?, ?, ?)", MUNICIPIOS_TESTE)
+            db.executemany("INSERT INTO regiao_imediata (id, nome, uf) VALUES (?, ?, ?)", REGIOES_TESTE)
+            db.executemany(
+                "INSERT INTO municipio (codigo_ibge, nome, uf, regiao_imediata_id) VALUES (?, ?, ?, ?)", MUNICIPIOS_TESTE
+            )
     yield app
 
 
@@ -38,6 +49,33 @@ def criar_usuario(app, nome, email):
                 (nome, email),
             )
         return cursor.lastrowid
+
+
+def criar_produtor(app, usuario_id, nome_vitrine="Sítio Teste", municipio_id=UBERABA, **extra):
+    """Cria a vitrine de produtor direto no banco."""
+    from app.perfis.dados import salvar_perfil_produtor
+    dados = {
+        "nome_vitrine": nome_vitrine, "descricao": "", "municipio_id": municipio_id,
+        "vende_retirada": True, "vende_entrega": False, "vende_feira": False, "vende_envio": False,
+        "onde_encontrar": "", "organico": "nao", "organico_registro": "",
+        "telefone_publico": None, "telefone_whatsapp": False,
+    }
+    dados.update(extra)
+    with app.app_context():
+        salvar_perfil_produtor(get_db(), usuario_id, dados)
+
+
+def criar_comercio(app, usuario_id, nome="Mercado Teste", cnpj="11222333000181", municipio_id=UBERABA,
+                   tipo="mercado", interesses=(), **extra):
+    """Cria o perfil de comércio direto no banco."""
+    from app.perfis.dados import salvar_perfil_comercio
+    dados = {
+        "nome_fantasia": nome, "cnpj": cnpj, "tipo": tipo, "descricao": "", "municipio_id": municipio_id,
+        "volume_compra": "", "telefone_publico": None, "telefone_whatsapp": False,
+    }
+    dados.update(extra)
+    with app.app_context():
+        salvar_perfil_comercio(get_db(), usuario_id, dados, list(interesses))
 
 
 def cliente_logado(app, usuario_id):

@@ -44,22 +44,39 @@ def init_db():
 
 
 def buscar_municipios_ibge(uf):
-    """Lista de (código IBGE, nome) dos municípios de uma UF, pela API de Localidades do IBGE."""
+    """Municípios de uma UF pela API de Localidades do IBGE.
+
+    Devolve (código IBGE, nome, id da região imediata, nome da região imediata).
+    """
     pedido = urllib.request.Request(URL_MUNICIPIOS_IBGE.format(uf=uf), headers={"Accept": "application/json"})
     with urllib.request.urlopen(pedido, timeout=30) as resposta:
         corpo = resposta.read()
     if corpo[:2] == b"\x1f\x8b":  # a API do IBGE pode responder compactada em gzip
         corpo = gzip.decompress(corpo)
     dados = json.loads(corpo.decode("utf-8"))
-    return [(item["id"], item["nome"]) for item in dados]
+    municipios = []
+    for item in dados:
+        regiao = item.get("regiao-imediata") or {}
+        municipios.append((item["id"], item["nome"], regiao.get("id"), regiao.get("nome")))
+    return municipios
 
 
 def salvar_municipios(uf, municipios):
+    """Grava ou atualiza municípios. Cada item: (código, nome) ou (código, nome, id_regiao, nome_regiao)."""
     db = get_db()
+    linhas = [tuple(item) + (None, None) if len(item) == 2 else tuple(item) for item in municipios]
     with db:
         db.executemany(
-            "INSERT OR IGNORE INTO municipio (codigo_ibge, nome, uf) VALUES (?, ?, ?)",
-            [(codigo, nome, uf) for codigo, nome in municipios],
+            """INSERT INTO regiao_imediata (id, nome, uf) VALUES (?, ?, ?)
+               ON CONFLICT (id) DO UPDATE SET nome = excluded.nome, uf = excluded.uf""",
+            {(regiao_id, regiao_nome, uf) for _, _, regiao_id, regiao_nome in linhas if regiao_id},
+        )
+        db.executemany(
+            """INSERT INTO municipio (codigo_ibge, nome, uf, regiao_imediata_id) VALUES (?, ?, ?, ?)
+               ON CONFLICT (codigo_ibge) DO UPDATE SET
+                   nome = excluded.nome, uf = excluded.uf,
+                   regiao_imediata_id = COALESCE(excluded.regiao_imediata_id, municipio.regiao_imediata_id)""",
+            [(codigo, nome, uf, regiao_id) for codigo, nome, regiao_id, _ in linhas],
         )
 
 

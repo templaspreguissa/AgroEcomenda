@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% from "_macros.html" import card_anuncio, contato_publico %}
+{% block titulo %}{{ perfil.nome_vitrine }}{% endblock %}
+{% block conteudo %}
+<article class="secao">
+  <p class="card__meta"><a href="{{ url_for('perfis.produtores') }}">Produtores</a> › {{ perfil.municipio_nome }}/{{ perfil.municipio_uf }}</p>
+
+  <header class="perfil">
+    {% if perfil.foto %}<img class="perfil-foto" src="{{ url_for('anuncios.foto', nome=perfil.foto) }}" alt="Foto de {{ perfil.nome_vitrine }}" width="120" height="120">
+    {% else %}<span class="perfil-foto perfil-foto--vazia" aria-hidden="true">🌱</span>{% endif %}
+    <div>
+      <h1>{{ perfil.nome_vitrine }}</h1>
+      <p class="texto-apoio"><span aria-hidden="true">📍</span> {{ perfil.municipio_nome }}/{{ perfil.municipio_uf }}{% if perfil.regiao_nome and perfil.regiao_nome != perfil.municipio_nome %} · região de {{ perfil.regiao_nome }}{% endif %}</p>
+      <ul class="selos">
+        {% if perfil.organico == 'certificado' %}<li class="selo selo--organico">Orgânico certificado (declarado): {{ perfil.organico_registro }}</li>
+        {% elif perfil.organico == 'ocs' %}<li class="selo selo--organico">Orgânico, venda direta com OCS (declarado): {{ perfil.organico_registro }}</li>{% endif %}
+        {% if perfil.status != 'ativo' %}<li class="selo">Oculta pela moderação</li>{% endif %}
+      </ul>
+    </div>
+  </header>
+
+  {% if sou_dono %}
+    <div class="acoes">
+      <a class="botao" href="{{ url_for('anuncios.novo') }}">Anunciar produto</a>
+      <a class="botao botao--secundario" href="{{ url_for('perfis.editar_produtor') }}">Editar vitrine</a>
+    </div>
+  {% endif %}
+
+  {% if perfil.descricao %}<p class="texto-livre perfil__descricao">{{ perfil.descricao }}</p>{% endif %}
+
+  <div class="paineis paineis--duplo">
+    <section class="cartao" aria-labelledby="como-comprar">
+      <h2 id="como-comprar" class="cartao__titulo">Como comprar</h2>
+      <ul class="lista-simples">
+        {% for chave, rotulo in FORMAS_VENDA.items() %}{% if perfil[chave] %}<li>{{ rotulo }}</li>{% endif %}{% endfor %}
+      </ul>
+      {% if perfil.onde_encontrar %}<p><strong>Onde encontrar:</strong> {{ perfil.onde_encontrar }}</p>{% endif %}
+    </section>
+    <section class="cartao" aria-labelledby="contato">
+      <h2 id="contato" class="cartao__titulo">Contato</h2>
+      {% if perfil.telefone_publico %}
+        {{ contato_publico(perfil.telefone_publico, perfil.telefone_whatsapp) }}
+      {% else %}
+        <p class="vazio">Para negociar, faça uma proposta em um dos produtos abaixo.</p>
+      {% endif %}
+      <p class="card__suave">Na plataforma desde {{ perfil.desde | data_br }}</p>
+    </section>
+  </div>
+
+  <section aria-labelledby="produtos">
+    <div class="cabecalho-secao">
+      <h2 id="produtos">Produtos à venda ({{ produtos | length }})</h2>
+      {% if categorias %}<p class="card__suave">{{ categorias | join(' · ') }}</p>{% endif %}
+    </div>
+    {% if produtos %}
+      <ul class="cards">{% for a in produtos %}{{ card_anuncio(a) }}{% endfor %}</ul>
+    {% else %}
+      <p class="vazio-bloco">{% if sou_dono %}Sua vitrine ainda não tem produtos. <a href="{{ url_for('anuncios.novo') }}">Anuncie o primeiro</a>.{% else %}Nenhum produto à venda no momento.{% endif %}</p>
+    {% endif %}
+  </section>
+</article>
+{% endblock %}

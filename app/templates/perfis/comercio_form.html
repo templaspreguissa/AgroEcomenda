@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_macros.html" import campo, selecao %}
+{% block titulo %}{{ 'Editar minha loja' if perfil else 'Cadastrar minha loja' }}{% endblock %}
+{% block conteudo %}
+<section class="secao secao--media">
+  <h1>{{ 'Editar minha loja' if perfil else 'Cadastrar minha loja' }}</h1>
+  <p class="texto-apoio">Mercados, restaurantes, distribuidores e outros comércios aparecem para os produtores da região, que podem oferecer o que produzem.</p>
+
+  <form class="formulario" method="post" novalidate>
+    {{ form.hidden_tag() }}
+
+    <fieldset class="etapa">
+      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">1</span> Sobre o comércio</legend>
+      {{ campo(form.nome_fantasia, dica='O nome pelo qual os clientes conhecem o comércio.', extras={'maxlength': 80}) }}
+      {{ campo(form.cnpj, dica='14 caracteres, com ou sem pontuação. Desde julho de 2026, CNPJs novos podem ter letras.', extras={'maxlength': 18, 'autocapitalize': 'characters', 'placeholder': '00.000.000/0000-00'}) }}
+      {% if perfil and perfil.verificado_em %}<p class="aviso aviso--sucesso">Loja verificada. Se trocar o CNPJ, o selo sai até uma nova conferência.</p>{% endif %}
+      {{ selecao(form.tipo, 'Escolha o tipo') }}
+      {{ campo(form.municipio, dica='Comece a digitar e escolha na lista.', autocomplete='off', extras={'list': 'lista-municipios', 'placeholder': 'Ex.: Uberaba/MG'}) }}
+      <datalist id="lista-municipios">{% for municipio in municipios %}<option value="{{ municipio }}">{% endfor %}</datalist>
+      {{ campo(form.descricao, dica='Ex.: mercado de bairro com seção de hortifrúti e produtos da roça.', extras={'rows': 3, 'maxlength': 1500}) }}
+    </fieldset>
+
+    <fieldset class="etapa">
+      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">2</span> O que você compra</legend>
+      <fieldset class="campo">
+        <legend class="campo__rotulo">Produtos de interesse</legend>
+        <p class="campo__dica">Os produtores filtram as lojas por aqui.</p>
+        <div class="interesses">
+          {% for grupo, opcoes in categorias.items() %}
+            <fieldset class="interesses__grupo">
+              <legend class="campo__rotulo campo__rotulo--leve">{{ grupo }}</legend>
+              {% for valor, rotulo in opcoes %}
+                <label class="opcao"><input type="checkbox" name="interesse" value="{{ valor }}"{% if valor in interesses %} checked{% endif %}> <span>{{ rotulo }}</span></label>
+              {% endfor %}
+            </fieldset>
+          {% endfor %}
+        </div>
+      </fieldset>
+      {{ campo(form.volume_compra, dica='Ex.: 200 kg de hortaliças e 30 dúzias de ovos por semana.', extras={'maxlength': 200}) }}
+    </fieldset>
+
+    <fieldset class="etapa">
+      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">3</span> Contato (opcional)</legend>
+      {{ campo(form.telefone, dica='Aparece só para produtores cadastrados. Deixe em branco se preferir não publicar.', autocomplete='tel', extras={'inputmode': 'tel', 'placeholder': '(34) 3333-0000'}) }}
+      <label class="opcao">{{ form.whatsapp() }} <span>{{ form.whatsapp.label.text }}</span></label>
+    </fieldset>
+
+    <button class="botao botao--largo" type="submit">{{ 'Salvar' if perfil else 'Cadastrar loja' }}</button>
+  </form>
+</section>
+{% endblock %}

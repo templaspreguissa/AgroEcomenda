@@ -3,8 +3,8 @@ import pytest
 from app.db import get_db
 from app.localidades import resolver_municipio
 from app.util import (
-    formatar_numero, formatar_quantidade, formatar_reais, ler_quantidade, normalizar_busca, por_unidade,
-    reais_para_centavos,
+    formatar_numero, formatar_quantidade, formatar_reais, formatar_telefone, ler_quantidade, ler_telefone,
+    link_whatsapp, normalizar_busca, por_unidade, reais_para_centavos,
 )
 
 
@@ -61,3 +61,26 @@ def test_resolver_municipio_invalido(app, texto):
 def test_resolver_municipio_com_acento(app):
     with app.app_context():
         assert resolver_municipio(get_db(), "goiania/go") == 5208707
+
+
+@pytest.mark.parametrize("texto, digitos", [
+    ("(34) 99876-5432", "34998765432"),
+    ("34 3333-0000", "3433330000"),
+    ("+55 34 99876 5432", "34998765432"),
+    ("55 34 3333 0000", "3433330000"),
+    ("(55) 99876-5432", "55998765432"),  # DDD 55 (RS) não é confundido com o código do país
+])
+def test_ler_telefone(texto, digitos):
+    assert ler_telefone(texto) == digitos
+
+
+@pytest.mark.parametrize("texto", ["99876-5432", "0800 123 4567", "abc", "", "34 9 9876 54321"])
+def test_telefone_invalido(texto):
+    with pytest.raises(ValueError):
+        ler_telefone(texto)
+
+
+def test_formatar_telefone_e_whatsapp():
+    assert formatar_telefone("34998765432") == "(34) 99876-5432"
+    assert formatar_telefone("3433330000") == "(34) 3333-0000"
+    assert link_whatsapp("34998765432") == "https://wa.me/5534998765432"

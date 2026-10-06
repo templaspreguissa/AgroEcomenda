@@ -28,13 +28,15 @@
       <p class="anuncio__preco">{{ anuncio.preco_centavos | reais }}{% if anuncio.preco_centavos %} <span class="card__suave">{{ unidade }}</span>{% endif %}</p>
       <dl class="dados">
         {% if anuncio.quantidade_disponivel %}<div><dt>Disponível</dt><dd>{{ quantidade(anuncio.quantidade_disponivel, anuncio.unidade_sigla) }}</dd></div>{% endif %}
-        {% if anuncio.condicao != 'nao_se_aplica' %}<div><dt>Condição</dt><dd>{{ condicoes[anuncio.condicao] }}</dd></div>{% endif %}
         <div><dt>Local</dt><dd>{{ anuncio.municipio_nome }}/{{ anuncio.municipio_uf }}</dd></div>
         <div><dt>Publicado em</dt><dd>{{ anuncio.criado_em | data_br }} · nº {{ anuncio.id }}</dd></div>
       </dl>
 
+      {% if aviso_inspecao %}<p class="aviso aviso--info">{{ aviso_inspecao }}</p>{% endif %}
+
       <section class="cartao vendedor" aria-labelledby="sobre-vendedor">
         <h2 id="sobre-vendedor" class="cartao__titulo">Sobre o vendedor</h2>
+        {% if anuncio.vitrine_nome %}<p><a href="{{ url_for('perfis.vitrine', usuario_id=anuncio.vendedor_id) }}">{{ anuncio.vitrine_nome }}</a> <span class="card__suave">· ver vitrine</span></p>{% endif %}
         <p><strong>{{ anuncio.vendedor_nome if (sou_vendedor or negocio_fechado) else anuncio.vendedor_nome | primeiro_nome }}</strong>
           {% if vendedor_municipio and vendedor_municipio.nome %}<br><span class="card__suave">{{ vendedor_municipio.nome }}/{{ vendedor_municipio.uf }}</span>{% endif %}
           <br><span class="card__suave">No AgroEncomenda desde {{ anuncio.vendedor_desde | data_br }}</span></p>
@@ -167,6 +169,7 @@
       <li>O AgroEncomenda não intermedia pagamentos. Combine pagamento e entrega diretamente com a outra parte.</li>
       <li>Desconfie de preços muito abaixo do mercado e de pedidos de pagamento adiantado sem garantia.</li>
       <li>Se possível, veja o produto ou o animal pessoalmente antes de pagar.</li>
+      <li>Em produtos de origem animal, confira o selo de inspeção na embalagem.</li>
     </ul>
   </aside>
 </article>

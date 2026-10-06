@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block titulo %}AgroEncomenda{% endblock %} · AgroEncomenda</title>
-  <meta name="description" content="Marketplace de negociações no agronegócio: anuncie o que produz ou publique o que precisa comprar e receba propostas.">
+  <meta name="description" content="Aproxima quem produz no campo de comércios e consumidores da região: vitrines de produtores, lojas, anúncios e encomendas.">
   <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
   <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
@@ -34,6 +34,10 @@
     <nav class="subnav" aria-label="Seções">
       <div class="subnav__interno">
         <a class="subnav__link" href="{{ url_for('anuncios.lista') }}"{% if request.endpoint == 'anuncios.lista' %} aria-current="page"{% endif %}>Anúncios</a>
+        <a class="subnav__link" href="{{ url_for('perfis.produtores') }}"{% if request.endpoint == 'perfis.produtores' %} aria-current="page"{% endif %}>Produtores</a>
+        {% if g.usuario and (g.usuario.tem_produtor or g.usuario.papel == 'admin') %}
+          <a class="subnav__link" href="{{ url_for('perfis.comercios') }}"{% if request.endpoint == 'perfis.comercios' %} aria-current="page"{% endif %}>Comércios</a>
+        {% endif %}
         <a class="subnav__link" href="{{ url_for('encomendas.lista') }}"{% if request.endpoint == 'encomendas.lista' %} aria-current="page"{% endif %}>Encomendas</a>
         <a class="subnav__link subnav__link--acao" href="{{ url_for('anuncios.novo') }}"{% if request.endpoint == 'anuncios.novo' %} aria-current="page"{% endif %}>Anunciar</a>
         <a class="subnav__link subnav__link--acao" href="{{ url_for('encomendas.nova') }}"{% if request.endpoint == 'encomendas.nova' %} aria-current="page"{% endif %}>Encomendar</a>
@@ -57,7 +61,7 @@
   <footer class="rodape">
     <div class="rodape__interno">
       <p><strong>AgroEncomenda</strong> · projeto acadêmico do Trabalho A3 de Projeto e Engenharia de Software.</p>
-      <p>A plataforma aproxima compradores e vendedores. Não vende produtos, não intermedia pagamentos e não faz entregas.</p>
+      <p>A plataforma aproxima produtores, comércios e consumidores. Não vende produtos, não intermedia pagamentos e não faz entregas.</p>
       <nav aria-label="Links institucionais">
         <a href="{{ url_for('main.termos') }}">Termos de Uso</a>
         <a href="{{ url_for('main.privacidade') }}">Política de Privacidade</a>

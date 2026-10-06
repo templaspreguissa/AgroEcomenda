@@ -43,7 +43,7 @@ def test_comando_carregar_municipios(app, monkeypatch):
     with app.app_context():
         nomes = [linha[0] for linha in get_db().execute("SELECT nome FROM municipio WHERE uf = 'MG' ORDER BY nome")]
     # Belo Horizonte já existia na base de teste e não foi duplicado.
-    assert nomes == ["Belo Horizonte", "Uberaba", "Uberlândia"]
+    assert nomes == ["Belo Horizonte", "Sacramento", "Uberaba", "Uberlândia"]
 
 
 def test_comando_carregar_municipios_rejeita_uf_invalida(app):
@@ -58,3 +58,26 @@ def test_salvar_municipios_nao_duplica(app):
         salvar_municipios("MG", [(3106200, "Belo Horizonte")])
         salvar_municipios("MG", [(3106200, "Belo Horizonte")])
         assert get_db().execute("SELECT COUNT(*) FROM municipio").fetchone()[0] == antes
+
+
+def test_comando_carregar_demo(app):
+    from app.cnpj import valido
+    from app.demo import DEMO_SENHA
+
+    executor = app.test_cli_runner()
+    resultado = executor.invoke(args=["carregar-demo"])
+    assert "Dados de demonstração carregados" in resultado.output
+    with app.app_context():
+        db = get_db()
+        assert db.execute("SELECT COUNT(*) FROM perfil_produtor").fetchone()[0] == 3
+        assert db.execute("SELECT COUNT(*) FROM perfil_comercio WHERE verificado_em IS NOT NULL").fetchone()[0] == 1
+        assert all(valido(linha[0]) for linha in db.execute("SELECT cnpj FROM perfil_comercio"))
+        assert db.execute("SELECT COUNT(*) FROM usuario WHERE telefone IS NOT NULL").fetchone()[0] == 0
+        assert db.execute("SELECT COUNT(*) FROM perfil_produtor WHERE telefone_publico IS NOT NULL").fetchone()[0] == 0
+
+    cliente = app.test_client()
+    from .conftest import entrar
+    assert entrar(cliente, "ana.demo@example.com", DEMO_SENHA).headers["Location"] == "/painel"
+
+    de_novo = executor.invoke(args=["carregar-demo"])
+    assert de_novo.exit_code != 0 and "já foram carregados" in de_novo.output

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "_macros.html" import contato_publico, card_encomenda %}
+{% block titulo %}{{ perfil.nome_fantasia }}{% endblock %}
+{% block conteudo %}
+<article class="secao">
+  <p class="card__meta"><a href="{{ url_for('perfis.comercios') }}">Comércios</a> › {{ TIPOS_COMERCIO[perfil.tipo] }}</p>
+
+  <div class="cabecalho-secao">
+    <div>
+      <h1>{{ perfil.nome_fantasia }}</h1>
+      <p class="texto-apoio"><span aria-hidden="true">📍</span> {{ perfil.municipio_nome }}/{{ perfil.municipio_uf }}{% if perfil.regiao_nome and perfil.regiao_nome != perfil.municipio_nome %} · região de {{ perfil.regiao_nome }}{% endif %}</p>
+    </div>
+    <ul class="selos">
+      {% if perfil.verificado_em %}<li class="selo selo--verificado">Verificado</li>{% else %}<li class="selo">CNPJ conferido, loja ainda não verificada</li>{% endif %}
+    </ul>
+  </div>
+
+  {% if sou_dono %}
+    <div class="acoes"><a class="botao botao--secundario" href="{{ url_for('perfis.editar_comercio') }}">Editar minha loja</a></div>
+  {% endif %}
+
+  {% if perfil.descricao %}<p class="texto-livre perfil__descricao">{{ perfil.descricao }}</p>{% endif %}
+
+  <dl class="dados dados--destaque">
+    <div><dt>Tipo</dt><dd>{{ TIPOS_COMERCIO[perfil.tipo] }}</dd></div>
+    <div><dt>CNPJ</dt><dd>{{ cnpj_formatado }}</dd></div>
+    {% if interesses %}<div><dt>Compra</dt><dd>{{ interesses | map(attribute='nome') | join(', ') }}</dd></div>{% endif %}
+    {% if perfil.volume_compra %}<div><dt>Volume</dt><dd>{{ perfil.volume_compra }}</dd></div>{% endif %}
+    <div><dt>Na plataforma desde</dt><dd>{{ perfil.desde | data_br }}</dd></div>
+  </dl>
+
+  <section class="cartao" aria-labelledby="contato">
+    <h2 id="contato" class="cartao__titulo">Contato</h2>
+    {% if perfil.telefone_publico %}
+      {{ contato_publico(perfil.telefone_publico, perfil.telefone_whatsapp) }}
+    {% else %}
+      <p class="vazio">Esta loja não publicou telefone.{% if encomendas %} Responda a uma das encomendas abaixo com uma proposta.{% endif %}</p>
+    {% endif %}
+  </section>
+
+  <section class="secao" aria-labelledby="encomendas-loja">
+    <h2 id="encomendas-loja">Encomendas abertas desta loja ({{ encomendas | length }})</h2>
+    {% if encomendas %}
+      <ul class="cards">{% for e in encomendas %}{{ card_encomenda(e) }}{% endfor %}</ul>
+    {% else %}
+      <p class="vazio">Nenhuma encomenda aberta no momento.</p>
+    {% endif %}
+  </section>
+</article>
+{% endblock %}

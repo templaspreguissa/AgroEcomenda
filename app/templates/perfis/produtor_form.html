@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from "_macros.html" import campo, grupo_opcoes %}
+{% block titulo %}{{ 'Editar minha vitrine' if perfil else 'Criar minha vitrine' }}{% endblock %}
+{% block conteudo %}
+<section class="secao secao--media">
+  <h1>{{ 'Editar minha vitrine' if perfil else 'Criar minha vitrine' }}</h1>
+  <p class="texto-apoio">A vitrine é a página do seu sítio, fazenda ou agroindústria. Lojas e consumidores da região veem o que você produz e como comprar.</p>
+
+  <form class="formulario" method="post" enctype="multipart/form-data" novalidate>
+    {{ form.hidden_tag() }}
+
+    <fieldset class="etapa">
+      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">1</span> Sua vitrine</legend>
+      {{ campo(form.nome_vitrine, dica='O nome que lojas e consumidores vão ver. Ex.: Sítio Boa Vista, Queijaria Serra Azul.', extras={'maxlength': 80}) }}
+      {{ campo(form.municipio, dica='Onde fica a propriedade. Comece a digitar e escolha na lista.', autocomplete='off', extras={'list': 'lista-municipios', 'placeholder': 'Ex.: Uberaba/MG'}) }}
+      <datalist id="lista-municipios">{% for municipio in municipios %}<option value="{{ municipio }}">{% endfor %}</datalist>
+      {{ campo(form.descricao, dica='O que você produz, há quanto tempo, como cuida da produção.', extras={'rows': 4, 'maxlength': 1500}) }}
+
+      <div class="campo{% if erro_foto %} campo--erro{% endif %}">
+        <label class="campo__rotulo" for="foto">Foto ou logotipo (opcional)</label>
+        <p class="campo__dica" id="foto-dica">JPG, PNG ou WebP. A localização da foto é apagada antes de salvar.</p>
+        {% if perfil and perfil.foto %}
+          <img class="perfil-foto perfil-foto--previa" src="{{ url_for('anuncios.foto', nome=perfil.foto) }}" alt="Foto atual da vitrine" width="120" height="120">
+          <label class="opcao"><input type="checkbox" name="remover_foto" value="1"> <span>Remover a foto atual</span></label>
+        {% endif %}
+        <input class="campo__entrada" id="foto" name="foto" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="foto-dica{% if erro_foto %} foto-erro{% endif %}">
+        {% if erro_foto %}<p class="campo__erro" id="foto-erro">{{ erro_foto }}</p>{% endif %}
+      </div>
+    </fieldset>
+
+    <fieldset class="etapa">
+      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">2</span> Como você vende</legend>
+      <fieldset class="campo{% if form.erro_formas %} campo--erro{% endif %}">
+        <legend class="campo__rotulo">Formas de venda</legend>
+        {% for chave in ['vende_retirada', 'vende_entrega', 'vende_feira', 'vende_envio'] %}
+          <label class="opcao">{{ form[chave]() }} <span>{{ form[chave].label.text }}</span></label>
+        {% endfor %}
+        {% if form.erro_formas %}<p class="campo__erro">{{ form.erro_formas }}</p>{% endif %}
+      </fieldset>
+      {{ campo(form.onde_encontrar, dica='Ex.: Feira do Produtor, sábados das 6h às 11h, Praça Rui Barbosa.', extras={'maxlength': 300}) }}
+    </fieldset>
+
+    <fieldset class="etapa">
+      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">3</span> Produção orgânica</legend>
+      {{ grupo_opcoes(form.organico, dica='Para vender como orgânico, a lei exige certificação ou cadastro numa Organização de Controle Social, a OCS (Lei nº 10.831/2003, art. 3º).') }}
+      {{ campo(form.organico_registro, dica='Nome da certificadora ou da OCS. Deixe em branco se a produção não é orgânica.', extras={'maxlength': 120}) }}
+    </fieldset>
+
+    <fieldset class="etapa">
+      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">4</span> Contato público (opcional)</legend>
+      {{ campo(form.telefone, dica='Aparece para qualquer visitante da sua vitrine. Deixe em branco se preferir negociar só pelas propostas da plataforma.', autocomplete='tel', extras={'inputmode': 'tel', 'placeholder': '(34) 99999-0000'}) }}
+      <label class="opcao">{{ form.whatsapp() }} <span>{{ form.whatsapp.label.text }}</span></label>
+    </fieldset>
+
+    <button class="botao botao--largo" type="submit">{{ 'Salvar vitrine' if perfil else 'Criar vitrine' }}</button>
+  </form>
+</section>
+{% endblock %}

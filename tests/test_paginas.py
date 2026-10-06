@@ -1,8 +1,9 @@
 def test_home_mostra_escolhas_e_categorias(client):
     html = client.get("/").get_data(as_text=True)
-    assert "Quero vender" in html and "Quero comprar" in html
-    assert "Máquinas e equipamentos" in html
-    assert "Tratores" in html
+    assert "Sou produtor" in html and "Tenho um comércio" in html and "Quero comprar do produtor" in html
+    assert "Produtos de origem animal" in html
+    assert "Queijos e laticínios" in html
+    assert "Máquinas" not in html  # fora do escopo desde outubro de 2026
 
 
 def test_cabecalhos_de_seguranca(client):
@@ -14,7 +15,7 @@ def test_cabecalhos_de_seguranca(client):
 
 def test_sem_script_inline(client):
     # A CSP bloqueia <script> inline, então nenhuma página pode depender disso.
-    for url in ("/", "/entrar", "/cadastro", "/termos", "/privacidade"):
+    for url in ("/", "/entrar", "/cadastro", "/termos", "/privacidade", "/produtores"):
         html = client.get(url).get_data(as_text=True)
         assert "<script>" not in html
 
