@@ -26,6 +26,22 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Campos específicos por categoria (RF05): mostra só o grupo da categoria escolhida.
+  // Sem JavaScript, todos os grupos aparecem e o servidor guarda só os da categoria escolhida.
+  document.querySelectorAll("form[data-mapa-categorias]").forEach((formulario) => {
+    const mapa = JSON.parse(formulario.dataset.mapaCategorias);
+    const seletor = formulario.querySelector("#categoria_id");
+    const grupos = formulario.querySelectorAll("fieldset[data-categoria-principal]");
+    const atualizar = () => {
+      const principal = String(mapa[seletor.value] || "");
+      grupos.forEach((grupo) => {
+        grupo.hidden = grupo.dataset.categoriaPrincipal !== principal;
+      });
+    };
+    seletor.addEventListener("change", atualizar);
+    atualizar();
+  });
+
   // Pede confirmação antes de ações que não podem ser desfeitas (aceitar, recusar, cancelar, retirar).
   document.querySelectorAll("form[data-confirmar]").forEach((formulario) => {
     formulario.addEventListener("submit", (evento) => {

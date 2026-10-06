@@ -202,6 +202,11 @@ CREATE UNIQUE INDEX proposta_pendente_unica
     ON proposta (encomenda_id, vendedor_id)
     WHERE status = 'pendente' AND encomenda_id IS NOT NULL;
 
+-- No máximo uma proposta pendente por comprador em cada anúncio.
+CREATE UNIQUE INDEX proposta_pendente_anuncio
+    ON proposta (anuncio_id, comprador_id)
+    WHERE status = 'pendente' AND anuncio_id IS NOT NULL;
+
 CREATE INDEX idx_anuncio_busca     ON anuncio (status, categoria_id, municipio_id);
 CREATE INDEX idx_encomenda_busca   ON encomenda (status, categoria_id, municipio_entrega_id, prazo_limite);
 CREATE INDEX idx_proposta_encomenda ON proposta (encomenda_id);

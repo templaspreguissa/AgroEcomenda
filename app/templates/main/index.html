@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import card_anuncio %}
 {% block titulo %}Compre e venda no agro{% endblock %}
 {% block conteudo %}
 
@@ -8,17 +9,28 @@
     <p class="destaque__texto">Anuncie o que você produz ou publique o que precisa comprar, com quantidade, local e prazo. Receba propostas e acompanhe tudo num só lugar.</p>
 
     <div class="escolhas">
-      <a class="escolha escolha--vender" href="{{ url_for('encomendas.lista') }}">
+      <a class="escolha escolha--vender" href="{{ url_for('anuncios.novo') }}">
         <span class="escolha__titulo">Quero vender</span>
-        <span class="escolha__texto">Veja o que os compradores estão procurando e envie propostas com seu preço e prazo.</span>
+        <span class="escolha__texto">Anuncie o que você produz, com fotos e preço, e receba propostas de compra.</span>
       </a>
       <a class="escolha escolha--comprar" href="{{ url_for('encomendas.nova') }}">
         <span class="escolha__titulo">Quero comprar</span>
         <span class="escolha__texto">Publique uma encomenda dizendo o que precisa e receba propostas de vendedores.</span>
       </a>
     </div>
+    <p class="destaque__links">Ou veja os <a href="{{ url_for('anuncios.lista') }}">anúncios</a> e as <a href="{{ url_for('encomendas.lista') }}">encomendas abertas</a>.</p>
   </div>
 </section>
+
+{% if anuncios_recentes %}
+<section class="secao" aria-labelledby="anuncios-recentes">
+  <div class="cabecalho-secao">
+    <h2 id="anuncios-recentes">Anúncios recentes</h2>
+    <a href="{{ url_for('anuncios.lista') }}">Ver todos</a>
+  </div>
+  <ul class="cards">{% for a in anuncios_recentes %}{{ card_anuncio(a) }}{% endfor %}</ul>
+</section>
+{% endif %}
 
 <section class="secao" aria-labelledby="como-funciona">
   <h2 id="como-funciona">Como funciona</h2>
@@ -31,12 +43,12 @@
     <li class="passo">
       <span class="passo__numero" aria-hidden="true">2</span>
       <h3 class="passo__titulo">Receba propostas</h3>
-      <p>Vendedores respondem à sua encomenda com preço, quantidade, prazo e forma de entrega.</p>
+      <p>Vendedores respondem à sua encomenda, e compradores fazem ofertas nos seus anúncios, com preço, quantidade e prazo.</p>
     </li>
     <li class="passo">
       <span class="passo__numero" aria-hidden="true">3</span>
       <h3 class="passo__titulo">Compare e feche</h3>
-      <p>Compare as propostas, converse com o vendedor e aceite a melhor. O histórico fica guardado.</p>
+      <p>Compare as propostas e aceite a melhor. O contato entre vocês é liberado e o histórico fica guardado.</p>
     </li>
   </ol>
 </section>
@@ -59,8 +71,8 @@
   <h2 id="confianca">Negociação direta e registrada</h2>
   <ul class="lista-simples">
     <li>Comprador e vendedor negociam diretamente, sem intermediário financeiro.</li>
-    <li>Propostas, mensagens e status da negociação ficam guardados no seu painel.</li>
-    <li>Conteúdo suspeito pode ser denunciado e é analisado pela moderação.</li>
+    <li>Propostas e status da negociação ficam guardados no seu painel.</li>
+    <li>Até a proposta ser aceita, cada lado vê só o primeiro nome e o município do outro.</li>
   </ul>
 </section>
 {% endblock %}

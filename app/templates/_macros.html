@@ -58,6 +58,31 @@
   <span class="etiqueta etiqueta--{{ status }}">{{ rotulos.get(status, status) }}</span>
 {% endmacro %}
 
+{# Card de anúncio (decisão D7 do benchmark): foto, título, preço por unidade, município e data. #}
+{% macro card_anuncio(a) %}
+  <li class="card card--anuncio">
+    <article>
+      {% if a.foto_principal %}
+        <a class="card__foto" href="{{ url_for('anuncios.detalhe', anuncio_id=a.id) }}" tabindex="-1" aria-hidden="true">
+          <img src="{{ url_for('anuncios.foto', nome=a.foto_principal) }}" alt="" loading="lazy" width="400" height="300">
+        </a>
+      {% else %}
+        <div class="card__foto card__foto--vazia" aria-hidden="true">Sem foto</div>
+      {% endif %}
+      <div class="card__corpo">
+        <p class="card__meta">{{ a.categoria_nome }}{% if a.condicao != 'nao_se_aplica' %} · {{ 'Novo' if a.condicao == 'novo' else 'Usado' }}{% endif %}</p>
+        <h3 class="card__titulo"><a href="{{ url_for('anuncios.detalhe', anuncio_id=a.id) }}">{{ a.titulo }}</a></h3>
+        <p class="card__destaque">{{ a.preco_centavos | reais }}{% if a.preco_centavos %} <span class="card__suave">{{ a.unidade_sigla | por_unidade }}</span>{% endif %}</p>
+        <ul class="card__dados">
+          <li><span aria-hidden="true">📍</span> {{ a.municipio_nome }}/{{ a.municipio_uf }}</li>
+          {% if a.quantidade_disponivel %}<li><span aria-hidden="true">📦</span> {{ quantidade(a.quantidade_disponivel, a.unidade_sigla) }} disponíveis</li>{% endif %}
+        </ul>
+        <p class="card__rodape card__suave">Publicado em {{ a.criado_em | data_br }} · por {{ a.vendedor_nome | primeiro_nome }}</p>
+      </div>
+    </article>
+  </li>
+{% endmacro %}
+
 {# Card de encomenda (decisão D8 do benchmark). #}
 {% macro card_encomenda(e) %}
   <li class="card">

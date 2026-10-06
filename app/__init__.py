@@ -25,10 +25,13 @@ def create_app(test_config=None):
 
     app.config.from_mapping(
         DATABASE=os.path.join(app.instance_path, "agroencomenda.db"),
+        PASTA_FOTOS=os.path.join(app.instance_path, "uploads"),  # fora de /static e fora do Git
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
         PERMANENT_SESSION_LIFETIME=timedelta(days=7),
-        MAX_CONTENT_LENGTH=5 * 1024 * 1024,
+        MAX_CONTENT_LENGTH=25 * 1024 * 1024,  # até 5 fotos de celular por envio
+        FOTO_TAMANHO_MAXIMO=8 * 1024 * 1024,
+        FOTOS_POR_ANUNCIO=5,
         TERMOS_VERSAO="2026-10-v0.1",
         REPOSITORIO_URL="https://github.com/templaspreguissa/AgroEcomenda",
         SENHA_MINIMA=15,
@@ -68,10 +71,12 @@ def create_app(test_config=None):
     from .util import registrar_filtros
     registrar_filtros(app)
 
+    from .anuncios import bp as anuncios_bp
     from .auth import bp as auth_bp
     from .encomendas import bp as encomendas_bp
     from .main import bp as main_bp
     app.register_blueprint(auth_bp)
+    app.register_blueprint(anuncios_bp)
     app.register_blueprint(encomendas_bp)
     app.register_blueprint(main_bp)
 

@@ -7,10 +7,11 @@ from flask import abort, current_app, flash, g, redirect, render_template, reque
 from .. import servicos
 from ..auth.routes import login_obrigatorio
 from ..db import get_db
+from ..formularios import escolhas_categorias
 from ..localidades import municipios_para_lista, rotulo_do_codigo, ufs_carregadas
 from ..util import formatar_numero, hoje, normalizar_busca
 from . import bp
-from .forms import EncomendaForm, PropostaForm, escolhas_categorias
+from .forms import EncomendaForm, PropostaForm
 
 ORDENACOES = {
     "prazo": ("Prazo mais próximo", "e.prazo_limite ASC, e.id DESC"),

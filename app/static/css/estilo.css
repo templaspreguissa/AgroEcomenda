@@ -77,6 +77,10 @@ p { margin: 0 0 1em; }
   .marca { font-size: 1rem; gap: .25rem; }
   .menu__link { padding: 0 .5rem; }
   .botao--pequeno { padding: .4rem .7rem; }
+  .subnav .subnav__interno { padding-inline: .5rem; gap: 0; }
+  .subnav .subnav__link { padding: 0 .6rem; }
+  /* No celular, "Anunciar" e "Encomendar" ficam nos botões das listas, da página inicial e do painel. */
+  .subnav .subnav__link--acao { display: none; }
 }
 
 /* ---------- conteúdo ---------- */
@@ -115,6 +119,8 @@ p { margin: 0 0 1em; }
 .destaque__titulo { font-size: 1.9rem; }
 .destaque__texto { font-size: 1.1rem; max-width: 40rem; color: #eef7ef; }
 .escolhas { display: grid; gap: .75rem; margin-top: 1.25rem; }
+.destaque__links { margin: 1rem 0 0; color: #eef7ef; }
+.destaque__links a { color: #fff; font-weight: 700; }
 .escolha {
   display: block; padding: 1.1rem 1.25rem; border-radius: var(--raio);
   text-decoration: none; background: var(--superficie); color: var(--texto); box-shadow: var(--sombra);
@@ -260,6 +266,33 @@ textarea.campo__entrada { min-height: 6rem; resize: vertical; }
 .lista-painel li { display: grid; gap: .2rem; padding: .6rem 0; border-bottom: 1px solid var(--borda); }
 .lista-painel li:last-child { border-bottom: 0; }
 
+/* ---------- anúncios ---------- */
+.etiqueta--ativo { color: var(--verde-escuro); background: var(--verde-claro); }
+.etiqueta--pausado { color: #7c2d12; background: #fff1e6; }
+.etiqueta--encerrado, .etiqueta--oculto { color: var(--texto-suave); background: #efede8; }
+.card--anuncio { padding: 0; overflow: hidden; }
+.card__foto { display: block; aspect-ratio: 4 / 3; background: var(--terra-claro); }
+.card__foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.card__foto--vazia { aspect-ratio: auto; height: 3rem; display: grid; place-items: center; color: var(--terra); font-weight: 700; font-size: .95rem; }
+.card__corpo { padding: 1rem; }
+.anuncio { display: grid; gap: 1.25rem; margin-bottom: 1.5rem; }
+.anuncio__preco { font-size: 1.6rem; font-weight: 800; color: var(--terra); margin: 0 0 .75rem; }
+.anuncio__resumo .dados { margin-bottom: 1rem; }
+.vendedor { margin-bottom: 1rem; }
+.galeria {
+  list-style: none; padding: 0; margin: 0; display: flex; gap: .5rem; overflow-x: auto;
+  scroll-snap-type: x mandatory; border-radius: var(--raio);
+}
+.galeria li { flex: 0 0 100%; scroll-snap-align: start; aspect-ratio: 4 / 3; background: var(--terra-claro); border-radius: var(--raio); overflow: hidden; }
+.galeria img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.galeria--vazia { display: grid; place-items: center; aspect-ratio: 4 / 3; background: var(--terra-claro); color: var(--terra); font-weight: 700; }
+.atributos { border: 1px solid var(--borda); border-radius: var(--raio); padding: .75rem 1rem 0; margin: 0 0 1.1rem; }
+.atributos legend { padding: 0 .25rem; }
+.atributos[hidden] { display: none; }
+.campo__rotulo--leve { font-weight: 600; }
+.fotos-atuais { list-style: none; padding: 0; margin: 0 0 1rem; display: flex; flex-wrap: wrap; gap: .75rem; }
+.fotos-atuais img { display: block; width: 160px; height: 120px; object-fit: cover; border-radius: var(--raio); border: 1px solid var(--borda); }
+
 /* Tabela que vira lista de cartões no celular */
 @media (max-width: 47.99rem) {
   .tabela--responsiva { display: block; overflow: visible; background: transparent; }
@@ -291,11 +324,13 @@ textarea.campo__entrada { min-height: 6rem; resize: vertical; }
   .linha-campos { grid-template-columns: 1fr 1fr; }
   .filtros__form { grid-template-columns: repeat(2, 1fr); gap: 0 .75rem; }
   .filtros__acoes { grid-column: 1 / -1; }
+  .anuncio { grid-template-columns: 3fr 2fr; align-items: start; }
 }
 @media (min-width: 64rem) {
   .categorias { grid-template-columns: repeat(3, 1fr); }
   .cards { grid-template-columns: repeat(3, 1fr); }
   .filtros__form { grid-template-columns: 2fr 1.5fr 1fr 1fr; align-items: end; }
+  .filtros__form--anuncios { grid-template-columns: repeat(4, 1fr); }
 }
 
 @media (prefers-reduced-motion: reduce) {

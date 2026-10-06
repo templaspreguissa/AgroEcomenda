@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% from "_macros.html" import campo, grupo_opcoes, selecao %}
+{% block titulo %}{{ 'Editar anúncio' if editando else 'Anunciar' }}{% endblock %}
+{% block conteudo %}
+<section class="secao secao--media">
+  <h1>{{ 'Editar anúncio' if editando else 'Anunciar' }}</h1>
+  <p class="texto-apoio">Mostre o que você vende. Compradores podem enviar uma proposta de compra pelo anúncio.</p>
+
+  <form class="formulario" method="post" enctype="multipart/form-data" novalidate data-mapa-categorias="{{ mapa_categorias }}">
+    {{ form.hidden_tag() }}
+
+    <fieldset class="etapa">
+      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">1</span> O que você vende</legend>
+      {{ campo(form.titulo, dica='Ex.: Trator Valtra A750 2014, novilhas nelore, milho em grão.', extras={'maxlength': 100}) }}
+      {{ selecao(form.categoria_id, "Escolha a categoria") }}
+
+      {% for principal_id, atributos in grupos_atributos.items() %}
+        <fieldset class="atributos" data-categoria-principal="{{ principal_id }}">
+          <legend class="campo__rotulo">Detalhes de {{ atributos[0].categoria_nome | lower }}</legend>
+          {% for atributo in atributos %}
+            {% set id_campo = 'atributo-' ~ atributo.id %}
+            {% set erro = erros_atributos.get(atributo.id) %}
+            <div class="campo{% if erro %} campo--erro{% endif %}">
+              <label class="campo__rotulo campo__rotulo--leve" for="{{ id_campo }}">{{ atributo.nome }}{% if not atributo.obrigatorio %} (opcional){% endif %}</label>
+              {% if atributo.tipo == 'lista' %}
+                <select class="campo__entrada" id="{{ id_campo }}" name="{{ id_campo }}"{% if erro %} aria-invalid="true" aria-describedby="{{ id_campo }}-erro"{% endif %}>
+                  <option value="">Escolha</option>
+                  {% for opcao in atributo.lista_opcoes %}<option{% if valores_atributos.get(atributo.id) == opcao %} selected{% endif %}>{{ opcao }}</option>{% endfor %}
+                </select>
+              {% else %}
+                <input class="campo__entrada" id="{{ id_campo }}" name="{{ id_campo }}" maxlength="100"
+                       value="{{ valores_atributos.get(atributo.id, '') }}"
+                       {% if atributo.tipo in ('numero', 'ano') %}inputmode="{{ 'numeric' if atributo.tipo == 'ano' else 'decimal' }}"{% endif %}
+                       {% if erro %}aria-invalid="true" aria-describedby="{{ id_campo }}-erro"{% endif %}>
+              {% endif %}
+              {% if erro %}<p class="campo__erro" id="{{ id_campo }}-erro">{{ erro }}</p>{% endif %}
+            </div>
+          {% endfor %}
+        </fieldset>
+      {% endfor %}
+
+      {{ campo(form.descricao, dica='Estado de conservação, qualidade, forma de pagamento aceita.', extras={'rows': 4, 'maxlength': 3000}) }}
+    </fieldset>
+
+    <fieldset class="etapa">
+      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">2</span> Preço, quantidade e local</legend>
+      <div class="linha-campos">
+        {{ campo(form.preco, dica='Por unidade. Deixe em branco para "a combinar".', extras={'inputmode': 'decimal', 'placeholder': '0,00'}) }}
+        {{ selecao(form.unidade_id, "Escolha a unidade") }}
+      </div>
+      {{ campo(form.quantidade, extras={'inputmode': 'decimal', 'placeholder': 'Ex.: 500'}) }}
+      {{ grupo_opcoes(form.condicao) }}
+      {{ campo(form.municipio, dica='Comece a digitar e escolha na lista. Formato: Município/UF.', autocomplete='off', extras={'list': 'lista-municipios', 'placeholder': 'Ex.: Uberaba/MG'}) }}
+      <datalist id="lista-municipios">
+        {% for municipio in municipios %}<option value="{{ municipio }}">{% endfor %}
+      </datalist>
+    </fieldset>
+
+    <fieldset class="etapa">
+      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">3</span> Fotos</legend>
+      {% if fotos %}
+        <p class="campo__rotulo">Fotos atuais</p>
+        <ul class="fotos-atuais">
+          {% for foto in fotos %}
+            <li>
+              <img src="{{ url_for('anuncios.foto', nome=foto.arquivo) }}" alt="{{ foto.texto_alternativo }}" width="160" height="120" loading="lazy">
+              <label class="opcao"><input type="checkbox" name="remover_foto" value="{{ foto.id }}"> <span>Remover</span></label>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      <div class="campo{% if erro_fotos %} campo--erro{% endif %}">
+        <label class="campo__rotulo" for="fotos">{{ 'Adicionar fotos' if fotos else 'Fotos' }} (opcional)</label>
+        <p class="campo__dica" id="fotos-dica">Até {{ limite_fotos }} fotos no total, em JPG, PNG ou WebP, com até {{ tamanho_foto_mb }} MB cada. No celular, você pode tirar a foto na hora.</p>
+        <input class="campo__entrada" id="fotos" name="fotos" type="file" multiple accept="image/jpeg,image/png,image/webp"
+               aria-describedby="fotos-dica{% if erro_fotos %} fotos-erro{% endif %}"{% if erro_fotos %} aria-invalid="true"{% endif %}>
+        {% if erro_fotos %}<p class="campo__erro" id="fotos-erro">{{ erro_fotos }}</p>{% endif %}
+      </div>
+    </fieldset>
+
+    <button class="botao botao--largo" type="submit">{{ 'Salvar alterações' if editando else 'Publicar anúncio' }}</button>
+  </form>
+
+  <p><a href="{{ url_for('anuncios.detalhe', anuncio_id=anuncio.id) if editando else url_for('anuncios.lista') }}">Voltar sem salvar</a></p>
+</section>
+{% endblock %}

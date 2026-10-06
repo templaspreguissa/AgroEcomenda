@@ -22,7 +22,10 @@ def categorias_com_subcategorias():
 
 @bp.route("/")
 def index():
-    return render_template("main/index.html", categorias=categorias_com_subcategorias())
+    recentes = get_db().execute(
+        servicos.SQL_ANUNCIO + " WHERE a.status = 'ativo' ORDER BY a.criado_em DESC, a.id DESC LIMIT 6"
+    ).fetchall()
+    return render_template("main/index.html", categorias=categorias_com_subcategorias(), anuncios_recentes=recentes)
 
 
 @bp.route("/termos")
@@ -49,14 +52,24 @@ def painel():
             ORDER BY CASE WHEN e.status IN ('aberta', 'em_negociacao') THEN 0 ELSE 1 END, e.prazo_limite, e.id DESC""",
         (usuario_id,),
     ).fetchall()
+    # Propostas que o usuário fez: como vendedor (em encomendas) ou como comprador (em anúncios).
     propostas_enviadas = db.execute(
         """SELECT p.id, p.status, p.preco_unitario_centavos, p.quantidade, p.prazo_entrega, u.sigla AS unidade_sigla,
-                  e.id AS encomenda_id, e.titulo AS encomenda_titulo
+                  p.encomenda_id, p.anuncio_id, COALESCE(e.titulo, a.titulo) AS titulo
              FROM proposta p
-             JOIN encomenda e      ON e.id = p.encomenda_id
+             LEFT JOIN encomenda e ON e.id = p.encomenda_id
+             LEFT JOIN anuncio a   ON a.id = p.anuncio_id
              JOIN unidade_medida u ON u.id = p.unidade_id
-            WHERE p.vendedor_id = ?
+            WHERE p.autor_id = ?
             ORDER BY CASE p.status WHEN 'pendente' THEN 0 WHEN 'aceita' THEN 1 ELSE 2 END, p.criado_em DESC""",
+        (usuario_id,),
+    ).fetchall()
+    meus_anuncios = db.execute(
+        """SELECT a.id, a.titulo, a.status, a.preco_centavos, u.sigla AS unidade_sigla,
+                  (SELECT COUNT(*) FROM proposta p WHERE p.anuncio_id = a.id AND p.status = 'pendente') AS pendentes
+             FROM anuncio a JOIN unidade_medida u ON u.id = a.unidade_id
+            WHERE a.vendedor_id = ?
+            ORDER BY CASE a.status WHEN 'ativo' THEN 0 WHEN 'pausado' THEN 1 ELSE 2 END, a.criado_em DESC""",
         (usuario_id,),
     ).fetchall()
     dados = db.execute(
@@ -65,5 +78,6 @@ def painel():
         (usuario_id,),
     ).fetchone()
     return render_template(
-        "main/painel.html", usuario=dados, minhas_encomendas=minhas_encomendas, propostas_enviadas=propostas_enviadas
+        "main/painel.html", usuario=dados, minhas_encomendas=minhas_encomendas,
+        propostas_enviadas=propostas_enviadas, meus_anuncios=meus_anuncios,
     )

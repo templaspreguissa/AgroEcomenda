@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% from "_macros.html" import card_anuncio %}
+{% block titulo %}Anúncios{% endblock %}
+{% block conteudo %}
+<section class="secao">
+  <div class="cabecalho-secao">
+    <div>
+      <h1>Anúncios</h1>
+      <p class="texto-apoio">Produção, animais, máquinas, insumos e serviços à venda.</p>
+    </div>
+    <a class="botao" href="{{ url_for('anuncios.novo') }}">Anunciar</a>
+  </div>
+
+  <details class="filtros"{% if filtros_ativos %} open{% endif %}>
+    <summary class="filtros__resumo">Filtrar{% if filtros_ativos %} (filtros ativos){% endif %}</summary>
+    <form class="filtros__form filtros__form--anuncios" method="get" action="{{ url_for('anuncios.lista') }}" role="search">
+      <div class="campo">
+        <label class="campo__rotulo" for="q">Buscar</label>
+        <input class="campo__entrada" id="q" name="q" type="search" value="{{ termo }}" placeholder="Ex.: trator, novilha, adubo">
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="categoria">Categoria</label>
+        <select class="campo__entrada" id="categoria" name="categoria">
+          <option value="">Todas</option>
+          {% for grupo, opcoes in categorias.items() %}
+            <optgroup label="{{ grupo }}">
+              {% for valor, rotulo in opcoes %}<option value="{{ valor }}"{% if categoria == valor %} selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+            </optgroup>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="uf">Estado</label>
+        <select class="campo__entrada" id="uf" name="uf">
+          <option value="">Todos</option>
+          {% for sigla in ufs %}<option value="{{ sigla }}"{% if uf == sigla %} selected{% endif %}>{{ sigla }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="condicao">Condição</label>
+        <select class="campo__entrada" id="condicao" name="condicao">
+          <option value="">Todas</option>
+          <option value="novo"{% if condicao == 'novo' %} selected{% endif %}>Novo</option>
+          <option value="usado"{% if condicao == 'usado' %} selected{% endif %}>Usado</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="preco_min">Preço mínimo (R$)</label>
+        <input class="campo__entrada" id="preco_min" name="preco_min" inputmode="decimal" value="{{ preco_min }}" placeholder="0,00">
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="preco_max">Preço máximo (R$)</label>
+        <input class="campo__entrada" id="preco_max" name="preco_max" inputmode="decimal" value="{{ preco_max }}" placeholder="0,00">
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="ordem">Ordenar por</label>
+        <select class="campo__entrada" id="ordem" name="ordem">
+          {% for chave, (rotulo, _) in ordenacoes.items() %}<option value="{{ chave }}"{% if ordem == chave %} selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="filtros__acoes">
+        <button class="botao" type="submit">Aplicar</button>
+        {% if filtros_ativos %}<a class="botao botao--secundario" href="{{ url_for('anuncios.lista') }}">Limpar filtros</a>{% endif %}
+      </div>
+    </form>
+  </details>
+
+  <p class="contagem" role="status">
+    {% if total %}Mostrando {{ inicio }}–{{ fim }} de {{ total }} anúncio{{ '' if total == 1 else 's' }}{% else %}Nenhum anúncio encontrado{% endif %}
+  </p>
+
+  {% if anuncios %}
+    <ul class="cards">{% for a in anuncios %}{{ card_anuncio(a) }}{% endfor %}</ul>
+  {% else %}
+    <div class="vazio-bloco">
+      <p>{% if filtros_ativos %}Nenhum anúncio com esses filtros. Tente outros termos ou limpe os filtros.{% else %}Ainda não há anúncios.{% endif %}</p>
+      <p>Não achou o que procura? <a href="{{ url_for('encomendas.nova') }}">Publique uma encomenda</a> e receba propostas.</p>
+    </div>
+  {% endif %}
+
+  {% if paginas > 1 %}
+    <nav class="paginacao" aria-label="Páginas de resultados">
+      {% set args = {'q': termo or None, 'categoria': categoria, 'uf': uf or None, 'condicao': condicao or None,
+                     'preco_min': preco_min or None, 'preco_max': preco_max or None, 'ordem': ordem} %}
+      {% if pagina > 1 %}<a class="botao botao--secundario" href="{{ url_for('anuncios.lista', pagina=pagina - 1, **args) }}">Anterior</a>{% endif %}
+      <span>Página {{ pagina }} de {{ paginas }}</span>
+      {% if pagina < paginas %}<a class="botao botao--secundario" href="{{ url_for('anuncios.lista', pagina=pagina + 1, **args) }}">Próxima</a>{% endif %}
+    </nav>
+  {% endif %}
+</section>
+{% endblock %}

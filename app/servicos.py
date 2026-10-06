@@ -8,6 +8,8 @@ Estados (seção 8.1 da pesquisa):
   Encomenda: aberta -> em_negociacao -> concluida | cancelada | expirada
   Proposta:  pendente -> aceita | recusada | retirada | nao_selecionada
 """
+from flask import current_app
+
 from .util import agora_utc_texto, hoje, normalizar_busca
 
 STATUS_ENCOMENDA_ATIVA = ("aberta", "em_negociacao")
@@ -33,10 +35,14 @@ SQL_ENCOMENDA = """
 
 SQL_PROPOSTA = """
     SELECT p.*, v.nome AS vendedor_nome, v.email AS vendedor_email,
-           vm.nome AS vendedor_municipio, vm.uf AS vendedor_uf, u.sigla AS unidade_sigla
+           vm.nome AS vendedor_municipio, vm.uf AS vendedor_uf,
+           c.nome AS comprador_nome, c.email AS comprador_email,
+           cm.nome AS comprador_municipio, cm.uf AS comprador_uf, u.sigla AS unidade_sigla
       FROM proposta p
       JOIN usuario v             ON v.id = p.vendedor_id
       LEFT JOIN municipio vm     ON vm.codigo_ibge = v.municipio_id
+      JOIN usuario c             ON c.id = p.comprador_id
+      LEFT JOIN municipio cm     ON cm.codigo_ibge = c.municipio_id
       JOIN unidade_medida u      ON u.id = p.unidade_id
 """
 
@@ -330,4 +336,251 @@ def recusar_proposta(db, proposta, encomenda, usuario_id):
         notificar(
             db, proposta["vendedor_id"], "proposta_recusada",
             f'Sua proposta para "{encomenda["titulo"]}" foi recusada.', _link_encomenda(encomenda["id"]),
+        )
+
+
+# =====================================================================
+# Anúncios (RF04, RF05, RF16) e propostas de compra sobre anúncio (RF18)
+#   Anúncio:  ativo <-> pausado -> encerrado   (oculto = moderação)
+#   Proposta: o comprador é o autor e o vendedor responde.
+# =====================================================================
+
+SQL_ANUNCIO = """
+    SELECT a.*, u.sigla AS unidade_sigla, m.nome AS municipio_nome, m.uf AS municipio_uf,
+           c.nome AS categoria_nome, c.categoria_pai_id AS categoria_pai_id,
+           v.nome AS vendedor_nome, v.email AS vendedor_email, v.criado_em AS vendedor_desde,
+           (SELECT arquivo FROM foto_anuncio f WHERE f.anuncio_id = a.id ORDER BY f.ordem, f.id LIMIT 1) AS foto_principal,
+           (SELECT COUNT(*) FROM proposta p WHERE p.anuncio_id = a.id AND p.status = 'pendente') AS propostas_pendentes
+      FROM anuncio a
+      JOIN unidade_medida u ON u.id = a.unidade_id
+      JOIN municipio m      ON m.codigo_ibge = a.municipio_id
+      JOIN categoria c      ON c.id = a.categoria_id
+      JOIN usuario v        ON v.id = a.vendedor_id
+"""
+
+
+def buscar_anuncio(db, anuncio_id):
+    return db.execute(SQL_ANUNCIO + " WHERE a.id = ?", (anuncio_id,)).fetchone()
+
+
+def fotos_do_anuncio(db, anuncio_id):
+    return db.execute(
+        "SELECT id, arquivo, texto_alternativo, ordem FROM foto_anuncio WHERE anuncio_id = ? ORDER BY ordem, id",
+        (anuncio_id,),
+    ).fetchall()
+
+
+def propostas_do_anuncio(db, anuncio_id):
+    return db.execute(
+        SQL_PROPOSTA + " WHERE p.anuncio_id = ? "
+        "ORDER BY CASE p.status WHEN 'aceita' THEN 0 WHEN 'pendente' THEN 1 ELSE 2 END, "
+        "p.preco_unitario_centavos DESC, p.criado_em",
+        (anuncio_id,),
+    ).fetchall()
+
+
+def proposta_pendente_do_comprador(db, anuncio_id, comprador_id):
+    return db.execute(
+        SQL_PROPOSTA + " WHERE p.anuncio_id = ? AND p.comprador_id = ? AND p.status = 'pendente'",
+        (anuncio_id, comprador_id),
+    ).fetchone()
+
+
+def _link_anuncio(anuncio_id):
+    return f"/anuncios/{anuncio_id}"
+
+
+def _gravar_atributos(db, anuncio_id, atributos):
+    db.execute("DELETE FROM anuncio_atributo WHERE anuncio_id = ?", (anuncio_id,))
+    db.executemany(
+        "INSERT INTO anuncio_atributo (anuncio_id, atributo_id, valor) VALUES (?, ?, ?)",
+        [(anuncio_id, atributo_id, valor) for atributo_id, valor in atributos.items()],
+    )
+
+
+def _gravar_fotos(db, anuncio_id, titulo, nomes, ordem_inicial=0):
+    for posicao, nome in enumerate(nomes, start=ordem_inicial):
+        db.execute(
+            "INSERT INTO foto_anuncio (anuncio_id, arquivo, texto_alternativo, ordem) VALUES (?, ?, ?, ?)",
+            (anuncio_id, nome, f"{titulo}, foto {posicao + 1}", posicao),
+        )
+
+
+def criar_anuncio(db, vendedor_id, dados, atributos, fotos):
+    with db:
+        cursor = db.execute(
+            """INSERT INTO anuncio (vendedor_id, categoria_id, titulo, titulo_busca, descricao, preco_centavos,
+                                    unidade_id, quantidade_disponivel, condicao, municipio_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                vendedor_id, dados["categoria_id"], dados["titulo"], normalizar_busca(dados["titulo"]),
+                dados["descricao"], dados["preco_centavos"], dados["unidade_id"], dados["quantidade"],
+                dados["condicao"], dados["municipio_id"],
+            ),
+        )
+        anuncio_id = cursor.lastrowid
+        _gravar_atributos(db, anuncio_id, atributos)
+        _gravar_fotos(db, anuncio_id, dados["titulo"], fotos)
+        db.execute(
+            "UPDATE usuario SET municipio_id = ? WHERE id = ? AND municipio_id IS NULL",
+            (dados["municipio_id"], vendedor_id),
+        )
+    return anuncio_id
+
+
+def editar_anuncio(db, anuncio, usuario_id, dados, atributos, fotos_novas, remover_ids):
+    """Atualiza o anúncio. Devolve os nomes de arquivo das fotos removidas (para apagar do disco)."""
+    if anuncio["vendedor_id"] != usuario_id:
+        raise PermissionError
+    if anuncio["status"] not in ("ativo", "pausado"):
+        raise RegraNegocio("Anúncios encerrados ou ocultos pela moderação não podem ser editados.")
+    atuais = fotos_do_anuncio(db, anuncio["id"])
+    removidas = [foto for foto in atuais if foto["id"] in set(remover_ids)]
+    limite = current_app.config["FOTOS_POR_ANUNCIO"]
+    if len(atuais) - len(removidas) + len(fotos_novas) > limite:
+        raise RegraNegocio(f"Cada anúncio pode ter no máximo {limite} fotos.")
+    with db:
+        db.execute(
+            """UPDATE anuncio
+                  SET categoria_id = ?, titulo = ?, titulo_busca = ?, descricao = ?, preco_centavos = ?,
+                      unidade_id = ?, quantidade_disponivel = ?, condicao = ?, municipio_id = ?, atualizado_em = ?
+                WHERE id = ?""",
+            (
+                dados["categoria_id"], dados["titulo"], normalizar_busca(dados["titulo"]), dados["descricao"],
+                dados["preco_centavos"], dados["unidade_id"], dados["quantidade"], dados["condicao"],
+                dados["municipio_id"], agora_utc_texto(), anuncio["id"],
+            ),
+        )
+        _gravar_atributos(db, anuncio["id"], atributos)
+        for foto in removidas:
+            db.execute("DELETE FROM foto_anuncio WHERE id = ? AND anuncio_id = ?", (foto["id"], anuncio["id"]))
+        proxima_ordem = max([foto["ordem"] for foto in atuais], default=-1) + 1
+        _gravar_fotos(db, anuncio["id"], dados["titulo"], fotos_novas, proxima_ordem)
+    return [foto["arquivo"] for foto in removidas]
+
+
+TRANSICOES_ANUNCIO = {
+    "pausar": (("ativo",), "pausado"),
+    "reativar": (("pausado",), "ativo"),
+    "encerrar": (("ativo", "pausado"), "encerrado"),
+}
+
+
+def mudar_status_anuncio(db, anuncio, usuario_id, acao):
+    if anuncio["vendedor_id"] != usuario_id:
+        raise PermissionError
+    origens, destino = TRANSICOES_ANUNCIO[acao]
+    marcadores = ", ".join("?" for _ in origens)
+    with db:
+        alterou = db.execute(
+            f"UPDATE anuncio SET status = ?, atualizado_em = ? WHERE id = ? AND status IN ({marcadores})",
+            (destino, agora_utc_texto(), anuncio["id"], *origens),
+        ).rowcount
+        if not alterou:
+            raise RegraNegocio("Não é possível fazer isso com o anúncio na situação atual.")
+        if destino != "ativo":
+            # Pausado ou encerrado não recebe propostas: as pendentes são encerradas com aviso ao comprador.
+            pendentes = db.execute(
+                "SELECT id, comprador_id FROM proposta WHERE anuncio_id = ? AND status = 'pendente'",
+                (anuncio["id"],),
+            ).fetchall()
+            for proposta in pendentes:
+                db.execute(
+                    "UPDATE proposta SET status = 'nao_selecionada', respondida_em = ? WHERE id = ?",
+                    (agora_utc_texto(), proposta["id"]),
+                )
+                notificar(
+                    db, proposta["comprador_id"], "proposta_recusada",
+                    f'O anúncio "{anuncio["titulo"]}" deixou de receber propostas.', _link_anuncio(anuncio["id"]),
+                )
+
+
+def _validar_proposta_anuncio(anuncio, dados):
+    disponivel = anuncio["quantidade_disponivel"]
+    if disponivel is not None and dados["quantidade"] > disponivel:
+        raise RegraNegocio("A quantidade pedida não pode ser maior que a quantidade disponível no anúncio.")
+    if dados["prazo_entrega"] < hoje():
+        raise RegraNegocio("A data de entrega não pode ser uma data que já passou.")
+    if dados.get("validade") and dados["validade"] < hoje():
+        raise RegraNegocio("A validade da proposta não pode ser uma data que já passou.")
+
+
+def enviar_proposta_anuncio(db, anuncio, comprador_id, dados):
+    if anuncio["vendedor_id"] == comprador_id:
+        raise RegraNegocio("Você não pode fazer proposta no seu próprio anúncio.")
+    if anuncio["status"] != "ativo":
+        raise RegraNegocio("Este anúncio não está recebendo propostas.")
+    if proposta_pendente_do_comprador(db, anuncio["id"], comprador_id):
+        raise RegraNegocio("Você já tem uma proposta aguardando resposta neste anúncio. Edite a proposta existente.")
+    _validar_proposta_anuncio(anuncio, dados)
+    with db:
+        cursor = db.execute(
+            """INSERT INTO proposta (anuncio_id, comprador_id, vendedor_id, autor_id, preco_unitario_centavos,
+                                     unidade_id, quantidade, prazo_entrega, transporte, validade, observacao)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                anuncio["id"], comprador_id, anuncio["vendedor_id"], comprador_id, dados["preco_centavos"],
+                anuncio["unidade_id"], dados["quantidade"], dados["prazo_entrega"].isoformat(), dados["transporte"],
+                dados["validade"].isoformat() if dados.get("validade") else None, dados["observacao"] or None,
+            ),
+        )
+        notificar(
+            db, anuncio["vendedor_id"], "nova_proposta",
+            f'Você recebeu uma proposta de compra para "{anuncio["titulo"]}".', _link_anuncio(anuncio["id"]),
+        )
+    return cursor.lastrowid
+
+
+def editar_proposta_anuncio(db, proposta, anuncio, usuario_id, dados):
+    if proposta["comprador_id"] != usuario_id:
+        raise PermissionError
+    if anuncio["status"] != "ativo":
+        raise RegraNegocio("Este anúncio não está recebendo propostas.")
+    _validar_proposta_anuncio(anuncio, dados)
+    with db:
+        alterou = db.execute(
+            """UPDATE proposta
+                  SET preco_unitario_centavos = ?, quantidade = ?, prazo_entrega = ?, transporte = ?,
+                      validade = ?, observacao = ?
+                WHERE id = ? AND status = 'pendente'""",
+            (
+                dados["preco_centavos"], dados["quantidade"], dados["prazo_entrega"].isoformat(), dados["transporte"],
+                dados["validade"].isoformat() if dados.get("validade") else None, dados["observacao"] or None,
+                proposta["id"],
+            ),
+        ).rowcount
+        if not alterou:
+            raise RegraNegocio("Esta proposta já foi respondida e não pode mais ser alterada.")
+
+
+def retirar_proposta_anuncio(db, proposta, usuario_id):
+    if proposta["comprador_id"] != usuario_id:
+        raise PermissionError
+    with db:
+        alterou = db.execute(
+            "UPDATE proposta SET status = 'retirada', respondida_em = ? WHERE id = ? AND status = 'pendente'",
+            (agora_utc_texto(), proposta["id"]),
+        ).rowcount
+        if not alterou:
+            raise RegraNegocio("Esta proposta já foi respondida e não pode mais ser retirada.")
+
+
+def responder_proposta_anuncio(db, proposta, anuncio, usuario_id, aceitar):
+    """O vendedor aceita ou recusa. O anúncio continua ativo: ele pode vender para outros compradores."""
+    if anuncio["vendedor_id"] != usuario_id:
+        raise PermissionError
+    if aceitar and anuncio["status"] != "ativo":
+        raise RegraNegocio("Reative o anúncio antes de aceitar propostas.")
+    novo_status = "aceita" if aceitar else "recusada"
+    with db:
+        alterou = db.execute(
+            "UPDATE proposta SET status = ?, respondida_em = ? WHERE id = ? AND status = 'pendente'",
+            (novo_status, agora_utc_texto(), proposta["id"]),
+        ).rowcount
+        if not alterou:
+            raise RegraNegocio("Esta proposta não está mais aguardando resposta.")
+        notificar(
+            db, proposta["comprador_id"], "proposta_aceita" if aceitar else "proposta_recusada",
+            f'Sua proposta para "{anuncio["titulo"]}" foi {"aceita" if aceitar else "recusada"}.',
+            _link_anuncio(anuncio["id"]),
         )

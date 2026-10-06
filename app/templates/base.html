@@ -33,8 +33,10 @@
     </div>
     <nav class="subnav" aria-label="Seções">
       <div class="subnav__interno">
-        <a class="subnav__link" href="{{ url_for('encomendas.lista') }}"{% if request.endpoint == 'encomendas.lista' %} aria-current="page"{% endif %}>Encomendas abertas</a>
-        <a class="subnav__link" href="{{ url_for('encomendas.nova') }}"{% if request.endpoint == 'encomendas.nova' %} aria-current="page"{% endif %}>Publicar encomenda</a>
+        <a class="subnav__link" href="{{ url_for('anuncios.lista') }}"{% if request.endpoint == 'anuncios.lista' %} aria-current="page"{% endif %}>Anúncios</a>
+        <a class="subnav__link" href="{{ url_for('encomendas.lista') }}"{% if request.endpoint == 'encomendas.lista' %} aria-current="page"{% endif %}>Encomendas</a>
+        <a class="subnav__link subnav__link--acao" href="{{ url_for('anuncios.novo') }}"{% if request.endpoint == 'anuncios.novo' %} aria-current="page"{% endif %}>Anunciar</a>
+        <a class="subnav__link subnav__link--acao" href="{{ url_for('encomendas.nova') }}"{% if request.endpoint == 'encomendas.nova' %} aria-current="page"{% endif %}>Encomendar</a>
       </div>
     </nav>
   </header>

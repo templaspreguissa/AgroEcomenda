@@ -17,6 +17,7 @@ def app(tmp_path):
         "TESTING": True,
         "SECRET_KEY": "chave-de-teste",
         "DATABASE": str(tmp_path / "teste.db"),
+        "PASTA_FOTOS": str(tmp_path / "uploads"),
     })
     with app.app_context():
         init_db()

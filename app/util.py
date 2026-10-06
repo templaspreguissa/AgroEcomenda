@@ -1,4 +1,5 @@
 """Funções de apoio: busca sem acentos, valores em reais, quantidades, unidades e datas."""
+import re
 import unicodedata
 from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
@@ -41,6 +42,13 @@ STATUS_PROPOSTA = {
     "cancelada": "Cancelada",
 }
 
+STATUS_ANUNCIO = {
+    "ativo": "Ativo",
+    "pausado": "Pausado",
+    "encerrado": "Encerrado",
+    "oculto": "Oculto pela moderação",
+}
+
 MESES = ["jan.", "fev.", "mar.", "abr.", "maio", "jun.", "jul.", "ago.", "set.", "out.", "nov.", "dez."]
 
 
@@ -61,7 +69,7 @@ def normalizar_busca(texto):
 
 
 def _decimal(texto):
-    """Aceita '1.234,56', '1234,56' e '1234.56'."""
+    """Aceita '1.234,56', '1234,56', '1234.56' e '100.000' (cem mil, como se escreve no Brasil)."""
     if texto is None:
         raise ValueError("vazio")
     limpo = str(texto).strip().replace("R$", "").replace(" ", "")
@@ -69,6 +77,8 @@ def _decimal(texto):
         raise ValueError("vazio")
     if "," in limpo:
         limpo = limpo.replace(".", "").replace(",", ".")
+    elif re.fullmatch(r"\d{1,3}(\.\d{3})+", limpo):
+        limpo = limpo.replace(".", "")  # pontos separando milhares, sem centavos
     try:
         valor = Decimal(limpo)
     except InvalidOperation as erro:
@@ -147,3 +157,4 @@ def registrar_filtros(app):
     app.add_template_global(TRANSPORTE, "TRANSPORTE")
     app.add_template_global(STATUS_ENCOMENDA, "STATUS_ENCOMENDA")
     app.add_template_global(STATUS_PROPOSTA, "STATUS_PROPOSTA")
+    app.add_template_global(STATUS_ANUNCIO, "STATUS_ANUNCIO")

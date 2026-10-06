@@ -11,6 +11,7 @@ from app.util import (
 @pytest.mark.parametrize("texto, centavos", [
     ("147", 14700), ("147,5", 14750), ("147,50", 14750), ("1.234,56", 123456),
     ("1234.56", 123456), ("R$ 2.000,00", 200000), ("0,01", 1),
+    ("100.000", 10_000_000), ("1.250.000", 125_000_000), ("147.5", 14750), ("12.50", 1250),
 ])
 def test_reais_para_centavos(texto, centavos):
     assert reais_para_centavos(texto) == centavos
