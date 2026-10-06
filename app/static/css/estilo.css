@@ -62,6 +62,15 @@ p { margin: 0 0 1em; }
 .menu__botao { background: none; border: 0; font: inherit; cursor: pointer; }
 .menu__link, .botao { white-space: nowrap; }
 
+/* Âncoras e títulos não ficam escondidos atrás do topo fixo */
+[id] { scroll-margin-top: 7rem; }
+
+/* No celular o topo não fica fixo: sobra mais tela para o conteúdo */
+@media (max-width: 47.99rem) {
+  .topo { position: static; }
+  [id] { scroll-margin-top: 1rem; }
+}
+
 /* Celulares estreitos: topo mais compacto para caber em uma linha */
 @media (max-width: 26rem) {
   .topo__interno { padding-inline: .75rem; gap: .25rem; }
@@ -173,6 +182,95 @@ p { margin: 0 0 1em; }
 .tabela th, .tabela td { text-align: left; padding: .6rem; border: 1px solid var(--borda); vertical-align: top; }
 .tabela th { background: var(--verde-claro); }
 
+/* ---------- utilitários ---------- */
+.sr {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+.texto-livre { white-space: pre-line; overflow-wrap: anywhere; }
+.secao--media { max-width: 40rem; }
+.cabecalho-secao { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: 1rem; }
+.cabecalho-secao h1, .cabecalho-secao h2 { margin: 0; }
+.acoes { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1rem 0; }
+.acoes form { margin: 0; }
+.acoes--compactas { margin: 0; }
+.botao--perigo { background: var(--superficie); color: var(--erro); border: 2px solid var(--erro); }
+.botao--perigo:hover { background: var(--erro-fundo); color: var(--erro); }
+.contagem { color: var(--texto-suave); margin: 1rem 0 .5rem; }
+.contador { color: var(--terra); font-size: .95rem; }
+.vazio-bloco { background: var(--superficie); border: 1px dashed var(--borda); border-radius: var(--raio); padding: 1.5rem; text-align: center; }
+
+/* ---------- submenu de seções ---------- */
+.subnav { border-top: 1px solid var(--borda); background: var(--fundo); }
+.subnav__interno { max-width: 1100px; margin: 0 auto; padding: 0 1rem; display: flex; gap: .25rem; overflow-x: auto; }
+.subnav__link {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 .75rem; white-space: nowrap;
+  color: var(--texto); text-decoration: none; font-weight: 600; border-bottom: 3px solid transparent;
+}
+.subnav__link:hover { color: var(--verde-escuro); border-bottom-color: var(--borda); }
+.subnav__link[aria-current="page"] { color: var(--verde-escuro); border-bottom-color: var(--verde); }
+
+/* ---------- etiquetas de status (sempre com texto) ---------- */
+.etiqueta {
+  display: inline-block; padding: .15rem .6rem; border-radius: 999px; font-size: .9rem; font-weight: 700;
+  border: 1px solid currentColor; background: var(--superficie); white-space: nowrap;
+}
+.etiqueta--aberta, .etiqueta--pendente { color: var(--verde-escuro); background: var(--verde-claro); }
+.etiqueta--em_negociacao { color: #7c2d12; background: #fff1e6; }
+.etiqueta--concluida, .etiqueta--aceita { color: #fff; background: var(--verde); border-color: var(--verde); }
+.etiqueta--cancelada, .etiqueta--expirada, .etiqueta--recusada, .etiqueta--retirada, .etiqueta--nao_selecionada { color: var(--texto-suave); background: #efede8; }
+
+/* ---------- filtros e lista ---------- */
+.filtros { background: var(--superficie); border: 1px solid var(--borda); border-radius: var(--raio); margin-bottom: 1rem; }
+.filtros__resumo { cursor: pointer; padding: .75rem 1rem; min-height: 44px; font-weight: 700; color: var(--verde-escuro); }
+.filtros__form { padding: 0 1rem 1rem; display: grid; gap: .25rem; }
+.filtros__acoes { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.cards { list-style: none; padding: 0; margin: 0; display: grid; gap: .75rem; }
+.card { background: var(--superficie); border: 1px solid var(--borda); border-radius: var(--raio); padding: 1rem; box-shadow: var(--sombra); }
+.card__meta { margin: 0 0 .25rem; font-size: .9rem; color: var(--texto-suave); }
+.card__titulo { margin: 0 0 .25rem; font-size: 1.15rem; }
+.card__titulo a { color: var(--verde-escuro); }
+.card__destaque { margin: 0 0 .5rem; font-size: 1.2rem; font-weight: 800; color: var(--terra); }
+.card__dados { list-style: none; padding: 0; margin: 0 0 .75rem; display: grid; gap: .2rem; }
+.card__suave { color: var(--texto-suave); font-size: .95rem; }
+.card__rodape { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: 0; }
+.paginacao { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .75rem; margin: 1.5rem 0; }
+
+/* ---------- formulários em etapas ---------- */
+.etapa { border: 0; padding: 0; margin: 0 0 1.5rem; }
+.etapa__titulo { font-size: 1.15rem; font-weight: 800; color: var(--verde-escuro); margin-bottom: .75rem; display: flex; align-items: center; gap: .5rem; }
+.etapa__numero {
+  display: inline-grid; place-items: center; width: 1.8rem; height: 1.8rem; border-radius: 50%;
+  background: var(--verde); color: #fff; font-size: 1rem;
+}
+.linha-campos { display: grid; gap: 0 .75rem; }
+textarea.campo__entrada { min-height: 6rem; resize: vertical; }
+.resumo { background: var(--terra-claro); border-radius: var(--raio); padding: 1rem; margin-bottom: 1rem; }
+.resumo__titulo { font-weight: 800; font-size: 1.1rem; margin-bottom: .25rem; }
+
+/* ---------- detalhe e propostas ---------- */
+.dados--destaque { margin-bottom: 1.25rem; }
+.chamada { background: var(--verde-claro); border-radius: var(--raio); padding: 1rem; margin: 1rem 0; display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; justify-content: space-between; }
+.chamada p { margin: 0; font-weight: 700; }
+.minha-proposta { margin: 1rem 0; }
+.dicas { margin-top: 2rem; background: var(--superficie); border: 1px solid var(--borda); border-radius: var(--raio); padding: 1rem 1.25rem; }
+.dicas h2 { font-size: 1.1rem; }
+.comparacao--aceita td { background: var(--verde-claro); }
+.lista-painel { list-style: none; padding: 0; margin: 0; }
+.lista-painel li { display: grid; gap: .2rem; padding: .6rem 0; border-bottom: 1px solid var(--borda); }
+.lista-painel li:last-child { border-bottom: 0; }
+
+/* Tabela que vira lista de cartões no celular */
+@media (max-width: 47.99rem) {
+  .tabela--responsiva { display: block; overflow: visible; background: transparent; }
+  .tabela--responsiva thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+  .tabela--responsiva tbody, .tabela--responsiva tr, .tabela--responsiva td { display: block; }
+  .tabela--responsiva tr { background: var(--superficie); border: 1px solid var(--borda); border-radius: var(--raio); margin-bottom: .75rem; padding: .5rem .75rem; }
+  .tabela--responsiva td { border: 0; padding: .35rem 0; }
+  .tabela--responsiva td:empty { display: none; }
+  .tabela--responsiva td[data-rotulo]::before { content: attr(data-rotulo); display: block; font-size: .85rem; font-weight: 700; color: var(--texto-suave); }
+}
+
 /* ---------- rodapé ---------- */
 .rodape { background: var(--verde-escuro); color: #eef7ef; margin-top: 2rem; }
 .rodape__interno { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem; font-size: .95rem; }
@@ -187,10 +285,17 @@ p { margin: 0 0 1em; }
   .passos { grid-template-columns: repeat(3, 1fr); }
   .categorias { grid-template-columns: repeat(2, 1fr); }
   .paineis { grid-template-columns: repeat(3, 1fr); }
+  .paineis--duplo { grid-template-columns: repeat(2, 1fr); }
   .dados div { grid-template-columns: 14rem 1fr; }
+  .cards { grid-template-columns: repeat(2, 1fr); }
+  .linha-campos { grid-template-columns: 1fr 1fr; }
+  .filtros__form { grid-template-columns: repeat(2, 1fr); gap: 0 .75rem; }
+  .filtros__acoes { grid-column: 1 / -1; }
 }
 @media (min-width: 64rem) {
   .categorias { grid-template-columns: repeat(3, 1fr); }
+  .cards { grid-template-columns: repeat(3, 1fr); }
+  .filtros__form { grid-template-columns: 2fr 1.5fr 1fr 1fr; align-items: end; }
 }
 
 @media (prefers-reduced-motion: reduce) {

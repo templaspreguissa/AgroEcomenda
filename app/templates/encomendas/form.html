@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "_macros.html" import campo, grupo_opcoes, selecao %}
+{% block titulo %}{{ 'Editar encomenda' if editando else 'Publicar encomenda' }}{% endblock %}
+{% block conteudo %}
+<section class="secao secao--media">
+  <h1>{{ 'Editar encomenda' if editando else 'Publicar encomenda' }}</h1>
+  <p class="texto-apoio">Diga o que você precisa. Vendedores interessados vão enviar propostas com preço e prazo.</p>
+
+  <form class="formulario" method="post" novalidate>
+    {{ form.hidden_tag() }}
+
+    <fieldset class="etapa">
+      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">1</span> O que você precisa</legend>
+      {{ campo(form.titulo, dica='Ex.: Milho em grão, bezerros nelore, pulverização com drone.', extras={'maxlength': 100}) }}
+      {{ selecao(form.categoria_id, "Escolha a categoria") }}
+      {{ campo(form.descricao, dica='Qualidade, variedade, raça, umidade ou qualquer exigência importante.', extras={'rows': 4, 'maxlength': 2000}) }}
+    </fieldset>
+
+    <fieldset class="etapa">
+      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">2</span> Quanto, onde e até quando</legend>
+      <div class="linha-campos">
+        {{ campo(form.quantidade, extras={'inputmode': 'decimal', 'placeholder': 'Ex.: 30'}) }}
+        {{ selecao(form.unidade_id, "Escolha a unidade") }}
+      </div>
+      {{ campo(form.municipio, dica='Comece a digitar e escolha na lista. Formato: Município/UF.', autocomplete='off', extras={'list': 'lista-municipios', 'placeholder': 'Ex.: Uberaba/MG'}) }}
+      <datalist id="lista-municipios">
+        {% for municipio in municipios %}<option value="{{ municipio }}">{% endfor %}
+      </datalist>
+      {{ campo(form.prazo_limite, dica='Data máxima para receber o produto ou o serviço.') }}
+    </fieldset>
+
+    <fieldset class="etapa">
+      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">3</span> Condições</legend>
+      {{ grupo_opcoes(form.transporte, dica='Quem leva o produto até o local de entrega.') }}
+      {{ campo(form.condicoes_pagamento, dica='Ex.: à vista na entrega, 30 dias, PIX.', extras={'maxlength': 200}) }}
+    </fieldset>
+
+    <button class="botao botao--largo" type="submit">{{ 'Salvar alterações' if editando else 'Publicar encomenda' }}</button>
+  </form>
+
+  <p><a href="{{ url_for('encomendas.detalhe', encomenda_id=encomenda.id) if editando else url_for('encomendas.lista') }}">Voltar sem salvar</a></p>
+</section>
+{% endblock %}

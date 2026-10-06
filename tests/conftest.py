@@ -3,9 +3,12 @@ import re
 import pytest
 
 from app import create_app
-from app.db import init_db
+from app.db import get_db, init_db
 
 SENHA_VALIDA = "milho verde na safra de março"
+
+
+MUNICIPIOS_TESTE = [(3170107, "Uberaba", "MG"), (3106200, "Belo Horizonte", "MG"), (5208707, "Goiânia", "GO")]
 
 
 @pytest.fixture
@@ -17,7 +20,30 @@ def app(tmp_path):
     })
     with app.app_context():
         init_db()
+        db = get_db()
+        with db:
+            db.executemany("INSERT INTO municipio (codigo_ibge, nome, uf) VALUES (?, ?, ?)", MUNICIPIOS_TESTE)
     yield app
+
+
+def criar_usuario(app, nome, email):
+    """Cria usuário direto no banco (mais rápido que o formulário) e devolve o id."""
+    with app.app_context():
+        db = get_db()
+        with db:
+            cursor = db.execute(
+                "INSERT INTO usuario (nome, email, senha_hash, tipo_pessoa, termos_versao, termos_aceitos_em) "
+                "VALUES (?, ?, 'hash-de-teste', 'PF', 'v-teste', '2026-01-01 00:00:00')",
+                (nome, email),
+            )
+        return cursor.lastrowid
+
+
+def cliente_logado(app, usuario_id):
+    cliente = app.test_client()
+    with cliente.session_transaction() as sessao:
+        sessao["usuario_id"] = usuario_id
+    return cliente
 
 
 @pytest.fixture

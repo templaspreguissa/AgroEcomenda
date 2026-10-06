@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block titulo %}Compre e venda no agro{% endblock %}
 {% block conteudo %}
-{% set destino = url_for('main.painel') if g.usuario else url_for('auth.cadastro') %}
 
 <section class="destaque">
   <div class="destaque__interno">
@@ -9,11 +8,11 @@
     <p class="destaque__texto">Anuncie o que você produz ou publique o que precisa comprar, com quantidade, local e prazo. Receba propostas e acompanhe tudo num só lugar.</p>
 
     <div class="escolhas">
-      <a class="escolha escolha--vender" href="{{ destino }}">
+      <a class="escolha escolha--vender" href="{{ url_for('encomendas.lista') }}">
         <span class="escolha__titulo">Quero vender</span>
-        <span class="escolha__texto">Anuncie produção, animais, máquinas, insumos ou serviços e responda encomendas da sua região.</span>
+        <span class="escolha__texto">Veja o que os compradores estão procurando e envie propostas com seu preço e prazo.</span>
       </a>
-      <a class="escolha escolha--comprar" href="{{ destino }}">
+      <a class="escolha escolha--comprar" href="{{ url_for('encomendas.nova') }}">
         <span class="escolha__titulo">Quero comprar</span>
         <span class="escolha__texto">Publique uma encomenda dizendo o que precisa e receba propostas de vendedores.</span>
       </a>

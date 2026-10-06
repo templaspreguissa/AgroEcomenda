@@ -42,7 +42,8 @@ def test_comando_carregar_municipios(app, monkeypatch):
     assert "2 municípios de MG carregados" in resultado.output
     with app.app_context():
         nomes = [linha[0] for linha in get_db().execute("SELECT nome FROM municipio WHERE uf = 'MG' ORDER BY nome")]
-    assert nomes == ["Belo Horizonte", "Uberlândia"]
+    # Belo Horizonte já existia na base de teste e não foi duplicado.
+    assert nomes == ["Belo Horizonte", "Uberaba", "Uberlândia"]
 
 
 def test_comando_carregar_municipios_rejeita_uf_invalida(app):
@@ -53,6 +54,7 @@ def test_comando_carregar_municipios_rejeita_uf_invalida(app):
 
 def test_salvar_municipios_nao_duplica(app):
     with app.app_context():
+        antes = get_db().execute("SELECT COUNT(*) FROM municipio").fetchone()[0]
         salvar_municipios("MG", [(3106200, "Belo Horizonte")])
         salvar_municipios("MG", [(3106200, "Belo Horizonte")])
-        assert get_db().execute("SELECT COUNT(*) FROM municipio").fetchone()[0] == 1
+        assert get_db().execute("SELECT COUNT(*) FROM municipio").fetchone()[0] == antes

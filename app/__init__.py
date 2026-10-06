@@ -34,6 +34,8 @@ def create_app(test_config=None):
         SENHA_MINIMA=15,
         LOGIN_MAX_FALHAS=5,
         LOGIN_BLOQUEIO_MINUTOS=15,
+        WTF_I18N_ENABLED=False,  # mensagens do WTForms em português via Meta.locales (app/formularios.py)
+        ITENS_POR_PAGINA=20,
     )
 
     if test_config is None:
@@ -63,9 +65,14 @@ def create_app(test_config=None):
     from . import db
     db.init_app(app)
 
+    from .util import registrar_filtros
+    registrar_filtros(app)
+
     from .auth import bp as auth_bp
+    from .encomendas import bp as encomendas_bp
     from .main import bp as main_bp
     app.register_blueprint(auth_bp)
+    app.register_blueprint(encomendas_bp)
     app.register_blueprint(main_bp)
 
     @app.after_request

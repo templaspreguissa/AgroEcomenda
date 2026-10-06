@@ -1,26 +1,56 @@
 {% extends "base.html" %}
+{% from "_macros.html" import etiqueta %}
 {% block titulo %}Meu painel{% endblock %}
 {% block conteudo %}
 <section class="secao">
-  <h1>Olá, {{ usuario.nome }}</h1>
-  <p class="texto-apoio">Este é o seu painel. Aqui ficarão seus anúncios, suas encomendas e as propostas que você enviou e recebeu.</p>
-
-  <div class="paineis">
-    <article class="cartao">
-      <h2 class="cartao__titulo">Meus anúncios</h2>
-      <p class="vazio">Você ainda não publicou anúncios.</p>
-    </article>
-    <article class="cartao">
-      <h2 class="cartao__titulo">Minhas encomendas</h2>
-      <p class="vazio">Você ainda não publicou encomendas.</p>
-    </article>
-    <article class="cartao">
-      <h2 class="cartao__titulo">Propostas</h2>
-      <p class="vazio">Nenhuma proposta enviada ou recebida.</p>
-    </article>
+  <div class="cabecalho-secao">
+    <div>
+      <h1>Olá, {{ usuario.nome }}</h1>
+      <p class="texto-apoio">Acompanhe suas encomendas e as propostas que você enviou.</p>
+    </div>
+    <a class="botao" href="{{ url_for('encomendas.nova') }}">Publicar encomenda</a>
   </div>
 
-  <p class="aviso aviso--info">Esta é a primeira versão do sistema. A publicação de anúncios, encomendas e propostas chega nas próximas versões.</p>
+  <div class="paineis paineis--duplo">
+    <section class="cartao" aria-labelledby="minhas-encomendas">
+      <h2 id="minhas-encomendas" class="cartao__titulo">Minhas encomendas</h2>
+      {% if minhas_encomendas %}
+        <ul class="lista-painel">
+          {% for e in minhas_encomendas %}
+            <li>
+              <a href="{{ url_for('encomendas.detalhe', encomenda_id=e.id) }}">{{ e.titulo }}</a>
+              <span class="card__suave">{{ quantidade(e.quantidade, e.unidade_sigla) }} · até {{ e.prazo_limite | data_br }}</span>
+              <span>{{ etiqueta(e.status, STATUS_ENCOMENDA) }}{% if e.pendentes %} <strong class="contador">{{ e.pendentes }} proposta{{ '' if e.pendentes == 1 else 's' }} para responder</strong>{% endif %}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="vazio">Você ainda não publicou encomendas. <a href="{{ url_for('encomendas.nova') }}">Publicar a primeira</a></p>
+      {% endif %}
+    </section>
+
+    <section class="cartao" aria-labelledby="propostas-enviadas">
+      <h2 id="propostas-enviadas" class="cartao__titulo">Propostas enviadas</h2>
+      {% if propostas_enviadas %}
+        <ul class="lista-painel">
+          {% for p in propostas_enviadas %}
+            <li>
+              <a href="{{ url_for('encomendas.detalhe', encomenda_id=p.encomenda_id) }}">{{ p.encomenda_titulo }}</a>
+              <span class="card__suave">{{ p.preco_unitario_centavos | reais }} {{ p.unidade_sigla | por_unidade }} · {{ quantidade(p.quantidade, p.unidade_sigla) }}</span>
+              <span>{{ etiqueta(p.status, STATUS_PROPOSTA) }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="vazio">Você ainda não enviou propostas. <a href="{{ url_for('encomendas.lista') }}">Ver encomendas abertas</a></p>
+      {% endif %}
+    </section>
+  </div>
+
+  <section class="cartao" aria-labelledby="meus-anuncios">
+    <h2 id="meus-anuncios" class="cartao__titulo">Meus anúncios</h2>
+    <p class="vazio">A publicação de anúncios de venda chega na próxima versão do sistema.</p>
+  </section>
 </section>
 
 <section class="secao" aria-labelledby="meus-dados">
@@ -29,7 +59,8 @@
     <div><dt>Nome</dt><dd>{{ usuario.nome }}</dd></div>
     <div><dt>E-mail</dt><dd>{{ usuario.email }}</dd></div>
     <div><dt>Tipo de conta</dt><dd>{{ 'Empresa ou cooperativa' if usuario.tipo_pessoa == 'PJ' else 'Pessoa física' }}</dd></div>
-    <div><dt>Conta criada em (UTC)</dt><dd>{{ usuario.criado_em }}</dd></div>
+    <div><dt>Município</dt><dd>{{ usuario.municipio_nome ~ '/' ~ usuario.municipio_uf if usuario.municipio_nome else 'Ainda não informado (é preenchido na primeira encomenda)' }}</dd></div>
+    <div><dt>Conta criada em</dt><dd>{{ usuario.criado_em | data_br }}</dd></div>
   </dl>
 </section>
 {% endblock %}

@@ -1,5 +1,5 @@
 {# Campo de formulário acessível: rótulo visível, dica e erro ligados por aria-describedby. #}
-{% macro campo(field, dica=None, autocomplete=None, mostrar_senha=False) %}
+{% macro campo(field, dica=None, autocomplete=None, mostrar_senha=False, extras={}) %}
   {% set ids = [] %}
   {% if dica %}{% set _ = ids.append(field.id ~ '-dica') %}{% endif %}
   {% if field.errors %}{% set _ = ids.append(field.id ~ '-erro') %}{% endif %}
@@ -8,10 +8,72 @@
   {% if field.errors %}{% set _ = attrs.update({'aria-invalid': 'true'}) %}{% endif %}
   {% if autocomplete %}{% set _ = attrs.update({'autocomplete': autocomplete}) %}{% endif %}
   {% if mostrar_senha %}{% set _ = attrs.update({'data-mostrar-senha': ''}) %}{% endif %}
+  {% set _ = attrs.update(extras) %}
   <div class="campo{% if field.errors %} campo--erro{% endif %}">
     {{ field.label(class_='campo__rotulo') }}
     {% if dica %}<p class="campo__dica" id="{{ field.id }}-dica">{{ dica }}</p>{% endif %}
     {{ field(**attrs) }}
     {% if field.errors %}<p class="campo__erro" id="{{ field.id }}-erro">{{ field.errors[0] }}</p>{% endif %}
   </div>
+{% endmacro %}
+
+{# <select> com opção inicial "Escolha..." e suporte a grupos (optgroup). #}
+{% macro selecao(field, inicial, dica=None) %}
+  {% set ids = [] %}
+  {% if dica %}{% set _ = ids.append(field.id ~ '-dica') %}{% endif %}
+  {% if field.errors %}{% set _ = ids.append(field.id ~ '-erro') %}{% endif %}
+  <div class="campo{% if field.errors %} campo--erro{% endif %}">
+    {{ field.label(class_='campo__rotulo') }}
+    {% if dica %}<p class="campo__dica" id="{{ field.id }}-dica">{{ dica }}</p>{% endif %}
+    <select class="campo__entrada" id="{{ field.id }}" name="{{ field.name }}"{% if ids %} aria-describedby="{{ ids | join(' ') }}"{% endif %}{% if field.errors %} aria-invalid="true"{% endif %}>
+      <option value=""{% if field.data is none %} selected{% endif %}>{{ inicial }}</option>
+      {% if field.choices is mapping %}
+        {% for grupo, opcoes in field.choices.items() %}
+          <optgroup label="{{ grupo }}">
+            {% for valor, rotulo in opcoes %}<option value="{{ valor }}"{% if field.data == valor %} selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+          </optgroup>
+        {% endfor %}
+      {% else %}
+        {% for valor, rotulo in field.choices %}<option value="{{ valor }}"{% if field.data == valor %} selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+      {% endif %}
+    </select>
+    {% if field.errors %}<p class="campo__erro" id="{{ field.id }}-erro">{{ field.errors[0] }}</p>{% endif %}
+  </div>
+{% endmacro %}
+
+{# Grupo de opções (radio) dentro de fieldset/legend. #}
+{% macro grupo_opcoes(field, dica=None) %}
+  <fieldset class="campo{% if field.errors %} campo--erro{% endif %}">
+    <legend class="campo__rotulo">{{ field.label.text }}</legend>
+    {% if dica %}<p class="campo__dica">{{ dica }}</p>{% endif %}
+    {% for opcao in field %}
+      <label class="opcao">{{ opcao() }} <span>{{ opcao.label.text }}</span></label>
+    {% endfor %}
+    {% if field.errors %}<p class="campo__erro">{{ field.errors[0] }}</p>{% endif %}
+  </fieldset>
+{% endmacro %}
+
+{# Etiqueta de status com texto (nunca só cor). #}
+{% macro etiqueta(status, rotulos) %}
+  <span class="etiqueta etiqueta--{{ status }}">{{ rotulos.get(status, status) }}</span>
+{% endmacro %}
+
+{# Card de encomenda (decisão D8 do benchmark). #}
+{% macro card_encomenda(e) %}
+  <li class="card">
+    <article>
+      <p class="card__meta">{{ e.categoria_nome }}</p>
+      <h3 class="card__titulo"><a href="{{ url_for('encomendas.detalhe', encomenda_id=e.id) }}">{{ e.titulo }}</a></h3>
+      <p class="card__destaque">{{ quantidade(e.quantidade, e.unidade_sigla) }}</p>
+      <ul class="card__dados">
+        <li><span aria-hidden="true">📍</span> <span class="sr">Entrega em </span>{{ e.municipio_nome }}/{{ e.municipio_uf }}</li>
+        <li><span aria-hidden="true">⏳</span> até {{ e.prazo_limite | data_br }} <span class="card__suave">({{ e.prazo_limite | prazo_relativo }})</span></li>
+        <li><span aria-hidden="true">🚚</span> {{ TRANSPORTE[e.transporte] }}</li>
+      </ul>
+      <p class="card__rodape">
+        {{ etiqueta(e.status, STATUS_ENCOMENDA) }}
+        <span class="card__suave">{{ e.propostas_pendentes }} proposta{{ '' if e.propostas_pendentes == 1 else 's' }} · por {{ e.comprador_nome | primeiro_nome }}</span>
+      </p>
+    </article>
+  </li>
 {% endmacro %}

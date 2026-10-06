@@ -25,4 +25,13 @@ document.addEventListener("DOMContentLoaded", () => {
       botao.setAttribute("aria-label", visivel ? "Mostrar senha" : "Ocultar senha");
     });
   });
+
+  // Pede confirmação antes de ações que não podem ser desfeitas (aceitar, recusar, cancelar, retirar).
+  document.querySelectorAll("form[data-confirmar]").forEach((formulario) => {
+    formulario.addEventListener("submit", (evento) => {
+      if (!window.confirm(formulario.dataset.confirmar)) {
+        evento.preventDefault();
+      }
+    });
+  });
 });

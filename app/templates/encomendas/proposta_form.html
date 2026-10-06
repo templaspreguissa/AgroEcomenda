@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros.html" import campo, grupo_opcoes %}
+{% block titulo %}{{ 'Editar proposta' if existente else 'Enviar proposta' }}{% endblock %}
+{% block conteudo %}
+<section class="secao secao--media">
+  <h1>{{ 'Editar proposta' if existente else 'Enviar proposta' }}</h1>
+
+  <div class="resumo">
+    <p class="resumo__titulo"><a href="{{ url_for('encomendas.detalhe', encomenda_id=encomenda.id) }}">{{ encomenda.titulo }}</a></p>
+    <p>Pedido: <strong>{{ quantidade(encomenda.quantidade, encomenda.unidade_sigla) }}</strong>, entrega em {{ encomenda.municipio_nome }}/{{ encomenda.municipio_uf }} até <strong>{{ encomenda.prazo_limite | data_br }}</strong>. {{ TRANSPORTE[encomenda.transporte] }}.</p>
+    {% if encomenda.condicoes_pagamento %}<p>Pagamento: {{ encomenda.condicoes_pagamento }}</p>{% endif %}
+  </div>
+
+  <form class="formulario" method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {% set unidade = encomenda.unidade_sigla | por_unidade %}
+    {{ campo(form.preco, dica='Preço ' ~ unidade ~ ', em reais. Ex.: 147,50', extras={'inputmode': 'decimal', 'placeholder': '0,00'}) }}
+    {{ campo(form.quantidade, dica='Pode ser menor que o pedido, se você não tiver tudo.', extras={'inputmode': 'decimal'}) }}
+    {{ campo(form.prazo_entrega, dica='Até ' ~ (encomenda.prazo_limite | data_br) ~ ', o prazo limite da encomenda.') }}
+    {{ grupo_opcoes(form.transporte) }}
+    {{ campo(form.validade, dica='Depois dessa data o preço pode mudar.') }}
+    {{ campo(form.observacao, dica='Ex.: qualidade do produto, forma de pagamento aceita.', extras={'rows': 3, 'maxlength': 1000}) }}
+    <button class="botao botao--largo" type="submit">{{ 'Salvar proposta' if existente else 'Enviar proposta' }}</button>
+  </form>
+
+  <p><a href="{{ url_for('encomendas.detalhe', encomenda_id=encomenda.id) }}">Voltar sem enviar</a></p>
+</section>
+{% endblock %}

@@ -1,6 +1,7 @@
 """Páginas públicas e painel do usuário."""
 from flask import g, render_template
 
+from .. import servicos
 from ..auth.routes import login_obrigatorio
 from ..db import get_db
 from . import bp
@@ -37,4 +38,32 @@ def privacidade():
 @bp.route("/painel")
 @login_obrigatorio
 def painel():
-    return render_template("main/painel.html", usuario=g.usuario)
+    db = get_db()
+    servicos.expirar_encomendas_vencidas(db)
+    usuario_id = g.usuario["id"]
+    minhas_encomendas = db.execute(
+        """SELECT e.id, e.titulo, e.status, e.prazo_limite, e.quantidade, u.sigla AS unidade_sigla,
+                  (SELECT COUNT(*) FROM proposta p WHERE p.encomenda_id = e.id AND p.status = 'pendente') AS pendentes
+             FROM encomenda e JOIN unidade_medida u ON u.id = e.unidade_id
+            WHERE e.comprador_id = ?
+            ORDER BY CASE WHEN e.status IN ('aberta', 'em_negociacao') THEN 0 ELSE 1 END, e.prazo_limite, e.id DESC""",
+        (usuario_id,),
+    ).fetchall()
+    propostas_enviadas = db.execute(
+        """SELECT p.id, p.status, p.preco_unitario_centavos, p.quantidade, p.prazo_entrega, u.sigla AS unidade_sigla,
+                  e.id AS encomenda_id, e.titulo AS encomenda_titulo
+             FROM proposta p
+             JOIN encomenda e      ON e.id = p.encomenda_id
+             JOIN unidade_medida u ON u.id = p.unidade_id
+            WHERE p.vendedor_id = ?
+            ORDER BY CASE p.status WHEN 'pendente' THEN 0 WHEN 'aceita' THEN 1 ELSE 2 END, p.criado_em DESC""",
+        (usuario_id,),
+    ).fetchall()
+    dados = db.execute(
+        """SELECT u.nome, u.email, u.tipo_pessoa, u.criado_em, m.nome AS municipio_nome, m.uf AS municipio_uf
+             FROM usuario u LEFT JOIN municipio m ON m.codigo_ibge = u.municipio_id WHERE u.id = ?""",
+        (usuario_id,),
+    ).fetchone()
+    return render_template(
+        "main/painel.html", usuario=dados, minhas_encomendas=minhas_encomendas, propostas_enviadas=propostas_enviadas
+    )

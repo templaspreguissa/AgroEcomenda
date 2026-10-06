@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% from "_macros.html" import etiqueta %}
+{% block titulo %}{{ encomenda.titulo }}{% endblock %}
+{% block conteudo %}
+{% set unidade = encomenda.unidade_sigla | por_unidade %}
+<article class="secao">
+  <p class="card__meta"><a href="{{ url_for('encomendas.lista') }}">Encomendas</a> › {{ encomenda.categoria_nome }}</p>
+  <div class="cabecalho-secao">
+    <h1>{{ encomenda.titulo }}</h1>
+    {{ etiqueta(encomenda.status, STATUS_ENCOMENDA) }}
+  </div>
+
+  <dl class="dados dados--destaque">
+    <div><dt>Quantidade</dt><dd>{{ quantidade(encomenda.quantidade, encomenda.unidade_sigla) }}</dd></div>
+    <div><dt>Entrega em</dt><dd>{{ encomenda.municipio_nome }}/{{ encomenda.municipio_uf }}</dd></div>
+    <div><dt>Prazo limite</dt><dd>{{ encomenda.prazo_limite | data_br }}{% if ativa %} <span class="card__suave">({{ encomenda.prazo_limite | prazo_relativo }})</span>{% endif %}</dd></div>
+    <div><dt>Transporte</dt><dd>{{ TRANSPORTE[encomenda.transporte] }}</dd></div>
+    {% if encomenda.condicoes_pagamento %}<div><dt>Pagamento</dt><dd>{{ encomenda.condicoes_pagamento }}</dd></div>{% endif %}
+    <div><dt>Comprador</dt><dd>{{ encomenda.comprador_nome if (sou_comprador or aceita) else encomenda.comprador_nome | primeiro_nome }}</dd></div>
+    <div><dt>Publicada em</dt><dd>{{ encomenda.criado_em | data_br }} · nº {{ encomenda.id }}</dd></div>
+  </dl>
+
+  {% if encomenda.descricao %}
+    <h2>Detalhes</h2>
+    <p class="texto-livre">{{ encomenda.descricao }}</p>
+  {% endif %}
+
+  {# ---------- ações do comprador ---------- #}
+  {% if sou_comprador %}
+    <div class="acoes">
+      {% if pode_editar %}<a class="botao botao--secundario" href="{{ url_for('encomendas.editar', encomenda_id=encomenda.id) }}">Editar encomenda</a>{% endif %}
+      {% if ativa %}
+        <form method="post" action="{{ url_for('encomendas.cancelar', encomenda_id=encomenda.id) }}" data-confirmar="Cancelar esta encomenda? As propostas pendentes serão encerradas.">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="botao botao--perigo" type="submit">Cancelar encomenda</button>
+        </form>
+      {% endif %}
+    </div>
+
+    {% if aceita %}
+      <div class="aviso aviso--sucesso">
+        <p><strong>Você aceitou a proposta de {{ aceita.vendedor_nome }}.</strong></p>
+        <p>Contato do vendedor: <a href="mailto:{{ aceita.vendedor_email }}">{{ aceita.vendedor_email }}</a>. Combinem pagamento e entrega diretamente.</p>
+      </div>
+    {% endif %}
+
+    <section aria-labelledby="propostas-recebidas">
+      <h2 id="propostas-recebidas">Propostas recebidas ({{ propostas | length }})</h2>
+      {% if propostas %}
+        <table class="tabela tabela--responsiva comparacao">
+          <caption class="sr">Comparação das propostas recebidas</caption>
+          <thead>
+            <tr>
+              <th scope="col">Vendedor</th><th scope="col">Preço {{ unidade }}</th><th scope="col">Quantidade</th>
+              <th scope="col">Total</th><th scope="col">Entrega</th><th scope="col">Transporte</th>
+              <th scope="col">Situação</th><th scope="col"><span class="sr">Ações</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in propostas %}
+              <tr class="{{ 'comparacao--aceita' if p.status == 'aceita' }}">
+                <td data-rotulo="Vendedor">
+                  <strong>{{ p.vendedor_nome if p.status == 'aceita' else p.vendedor_nome | primeiro_nome }}</strong>
+                  {% if p.vendedor_municipio %}<br><span class="card__suave">{{ p.vendedor_municipio }}/{{ p.vendedor_uf }}</span>{% endif %}
+                  {% if p.observacao %}<br><span class="card__suave texto-livre">“{{ p.observacao }}”</span>{% endif %}
+                </td>
+                <td data-rotulo="Preço {{ unidade }}">{{ p.preco_unitario_centavos | reais }}</td>
+                <td data-rotulo="Quantidade">{{ quantidade(p.quantidade, p.unidade_sigla) }}</td>
+                <td data-rotulo="Total">{{ (p.preco_unitario_centavos * p.quantidade) | round | int | reais }}</td>
+                <td data-rotulo="Entrega">{{ p.prazo_entrega | data_br }}</td>
+                <td data-rotulo="Transporte">{{ TRANSPORTE[p.transporte] }}</td>
+                <td data-rotulo="Situação">{{ etiqueta(p.status, STATUS_PROPOSTA) }}{% if p.validade and p.status == 'pendente' %}<br><span class="card__suave">válida até {{ p.validade | data_br }}</span>{% endif %}</td>
+                <td data-rotulo="Ações">
+                  {%- if p.status == 'pendente' and ativa %}
+                    <div class="acoes acoes--compactas">
+                      <form method="post" action="{{ url_for('encomendas.aceitar', proposta_id=p.id) }}" data-confirmar="Aceitar esta proposta? A encomenda será concluída e as outras propostas serão encerradas.">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="botao botao--pequeno" type="submit">Aceitar</button>
+                      </form>
+                      <form method="post" action="{{ url_for('encomendas.recusar', proposta_id=p.id) }}" data-confirmar="Recusar esta proposta?">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="botao botao--pequeno botao--secundario" type="submit">Recusar</button>
+                      </form>
+                    </div>
+                  {% endif -%}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="vazio">Nenhuma proposta ainda. Os vendedores interessados aparecem aqui.</p>
+      {% endif %}
+    </section>
+
+  {# ---------- visão do vendedor ---------- #}
+  {% elif g.usuario %}
+    {% for p in propostas %}
+      <section class="cartao minha-proposta" aria-labelledby="minha-proposta-{{ p.id }}">
+        <div class="cabecalho-secao">
+          <h2 id="minha-proposta-{{ p.id }}" class="cartao__titulo">Sua proposta</h2>
+          {{ etiqueta(p.status, STATUS_PROPOSTA) }}
+        </div>
+        <p>{{ p.preco_unitario_centavos | reais }} {{ unidade }} · {{ quantidade(p.quantidade, p.unidade_sigla) }} · entrega até {{ p.prazo_entrega | data_br }} · {{ TRANSPORTE[p.transporte] }}</p>
+        {% if p.status == 'aceita' %}
+          <div class="aviso aviso--sucesso">
+            <p><strong>O comprador aceitou sua proposta.</strong></p>
+            <p>Contato do comprador: {{ encomenda.comprador_nome }}, <a href="mailto:{{ encomenda.comprador_email }}">{{ encomenda.comprador_email }}</a>. Combinem pagamento e entrega diretamente.</p>
+          </div>
+        {% elif p.status == 'pendente' %}
+          <div class="acoes">
+            <a class="botao botao--secundario" href="{{ url_for('encomendas.proposta', encomenda_id=encomenda.id) }}">Editar proposta</a>
+            <form method="post" action="{{ url_for('encomendas.retirar', proposta_id=p.id) }}" data-confirmar="Retirar sua proposta?">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="botao botao--perigo" type="submit">Retirar proposta</button>
+            </form>
+          </div>
+        {% endif %}
+      </section>
+    {% endfor %}
+
+    {% if pode_propor %}
+      <div class="chamada">
+        <p>Você tem o que este comprador precisa?</p>
+        <a class="botao" href="{{ url_for('encomendas.proposta', encomenda_id=encomenda.id) }}">Enviar proposta</a>
+      </div>
+    {% elif not propostas and not ativa %}
+      <p class="aviso aviso--info">Esta encomenda não está mais recebendo propostas.</p>
+    {% endif %}
+    {% if encomenda.propostas_pendentes %}<p class="card__suave">{{ encomenda.propostas_pendentes }} proposta{{ '' if encomenda.propostas_pendentes == 1 else 's' }} aguardando resposta do comprador.</p>{% endif %}
+
+  {# ---------- visitante ---------- #}
+  {% else %}
+    {% if ativa %}
+      <div class="chamada">
+        <p>Quer vender para este comprador?</p>
+        <a class="botao" href="{{ url_for('auth.entrar', next=url_for('encomendas.proposta', encomenda_id=encomenda.id)) }}">Entrar para enviar proposta</a>
+      </div>
+    {% else %}
+      <p class="aviso aviso--info">Esta encomenda não está mais recebendo propostas.</p>
+    {% endif %}
+  {% endif %}
+
+  <aside class="dicas" aria-labelledby="dicas-seguranca">
+    <h2 id="dicas-seguranca">Dicas de segurança</h2>
+    <ul class="lista-simples">
+      <li>O AgroEncomenda não intermedia pagamentos. Combine pagamento e entrega diretamente com a outra parte.</li>
+      <li>Desconfie de preços muito abaixo do mercado e de pedidos de pagamento adiantado sem garantia.</li>
+      <li>Confira o produto ou o serviço antes de concluir o pagamento.</li>
+    </ul>
+  </aside>
+</article>
+{% endblock %}

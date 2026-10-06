@@ -1,8 +1,9 @@
 """Formulários de cadastro e login (Flask-WTF já inclui o token CSRF)."""
 from flask import current_app
-from flask_wtf import FlaskForm
 from wtforms import BooleanField, EmailField, PasswordField, RadioField, StringField
 from wtforms.validators import DataRequired, EqualTo, InputRequired, Length, Regexp, ValidationError
+
+from ..formularios import Formulario
 
 EMAIL_RE = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
 
@@ -22,7 +23,7 @@ SENHAS_COMUNS = {
 }
 
 
-class CadastroForm(FlaskForm):
+class CadastroForm(Formulario):
     nome = StringField(
         "Nome ou nome da propriedade",
         validators=[DataRequired("Informe seu nome."), Length(2, 120, "Use entre 2 e 120 caracteres.")],
@@ -70,7 +71,7 @@ class CadastroForm(FlaskForm):
             raise ValidationError("A senha não pode conter o seu e-mail.")
 
 
-class LoginForm(FlaskForm):
+class LoginForm(Formulario):
     email = EmailField(
         "E-mail", filters=[sem_espacos_nas_pontas], validators=[DataRequired("Informe seu e-mail."), Length(max=254)]
     )

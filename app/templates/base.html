@@ -31,6 +31,12 @@
         {% endif %}
       </nav>
     </div>
+    <nav class="subnav" aria-label="Seções">
+      <div class="subnav__interno">
+        <a class="subnav__link" href="{{ url_for('encomendas.lista') }}"{% if request.endpoint == 'encomendas.lista' %} aria-current="page"{% endif %}>Encomendas abertas</a>
+        <a class="subnav__link" href="{{ url_for('encomendas.nova') }}"{% if request.endpoint == 'encomendas.nova' %} aria-current="page"{% endif %}>Publicar encomenda</a>
+      </div>
+    </nav>
   </header>
 
   <main id="conteudo" class="conteudo" tabindex="-1">
