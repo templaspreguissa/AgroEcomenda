@@ -47,7 +47,7 @@ STATUS_PROPOSTA = {
     "cancelada": "Cancelada",
 }
 
-STATUS_ANUNCIO = {
+STATUS_PRODUTO = {
     "ativo": "Ativo",
     "pausado": "Pausado",
     "encerrado": "Encerrado",
@@ -80,6 +80,14 @@ ORGANICO = {
 }
 
 MESES = ["jan.", "fev.", "mar.", "abr.", "maio", "jun.", "jul.", "ago.", "set.", "out.", "nov.", "dez."]
+MESES_POR_EXTENSO = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto",
+                     "Setembro", "Outubro", "Novembro", "Dezembro"]
+
+DISPONIBILIDADE = {
+    "ano_todo": "O ano todo",
+    "safra": "Só em alguns meses (safra)",
+    "sob_encomenda": "Sob encomenda",
+}
 
 
 def hoje():
@@ -192,6 +200,38 @@ def link_whatsapp(digitos):
     return f"https://wa.me/55{digitos}"
 
 
+def bit_do_mes(data=None):
+    """Bit do mês na máscara de safra (bit 0 = janeiro)."""
+    return 1 << ((data or hoje()).month - 1)
+
+
+def em_safra(mascara, data=None):
+    return bool(mascara & bit_do_mes(data))
+
+
+def descrever_meses(mascara):
+    """Máscara de meses -> 'mar. a jun.', 'nov. a fev.' ou 'jan., abr. a jun. e out.'."""
+    if not mascara:
+        return ""
+    if mascara == 0b111111111111:
+        return "o ano todo"
+    # Conta a partir de janeiro. Se a safra vira o ano (dezembro e janeiro), começa logo depois de um
+    # mês fora da safra, para juntar dezembro e janeiro numa faixa só ("nov. a fev.").
+    vira_o_ano = mascara & 1 and mascara >> 11 & 1
+    inicio = next(mes for mes in range(12) if not mascara >> mes & 1) if vira_o_ano else 11
+    trechos, atual = [], []
+    for mes in ((inicio + 1 + passo) % 12 for passo in range(12)):
+        if mascara >> mes & 1:
+            atual.append(mes)
+        elif atual:
+            trechos.append(atual)
+            atual = []
+    if atual:
+        trechos.append(atual)
+    partes = [MESES[t[0]] if len(t) == 1 else f"{MESES[t[0]]} a {MESES[t[-1]]}" for t in trechos]
+    return partes[0] if len(partes) == 1 else ", ".join(partes[:-1]) + " e " + partes[-1]
+
+
 def primeiro_nome(nome):
     return (nome or "").split()[0] if (nome or "").split() else ""
 
@@ -207,7 +247,10 @@ def registrar_filtros(app):
     app.add_template_global(TRANSPORTE, "TRANSPORTE")
     app.add_template_global(STATUS_ENCOMENDA, "STATUS_ENCOMENDA")
     app.add_template_global(STATUS_PROPOSTA, "STATUS_PROPOSTA")
-    app.add_template_global(STATUS_ANUNCIO, "STATUS_ANUNCIO")
+    app.add_template_global(STATUS_PRODUTO, "STATUS_PRODUTO")
+    app.add_template_global(DISPONIBILIDADE, "DISPONIBILIDADE")
+    app.add_template_filter(descrever_meses, "meses")
+    app.add_template_global(em_safra, "em_safra")
     app.add_template_filter(formatar_telefone, "telefone")
     app.add_template_global(link_whatsapp, "link_whatsapp")
     app.add_template_global(TIPOS_COMERCIO, "TIPOS_COMERCIO")

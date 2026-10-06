@@ -25,9 +25,9 @@ A decisão da pesquisa de **perfis não exclusivos** continua: a mesma conta pod
 
 | Papel | Como obtém | O que ganha |
 |---|---|---|
-| Consumidor | Qualquer conta | Vê produtos, vitrines e onde comprar. Faz propostas de compra |
-| Produtor | Cria a **vitrine** (perfil de produtor). É exigida para anunciar | Página pública com o que produz, como vende e onde encontrar. Vê o diretório de comércios |
-| Comércio | Cadastra a **loja** (perfil de comércio) com CNPJ válido | Aparece para os produtores da região, com o que compra e quanto. Verá preços para lojas (Iteração 4) |
+| Consumidor | Qualquer conta | Vê os produtos vendidos ao consumidor final, com o preço de consumidor. Faz pedidos |
+| Produtor | Cria a **vitrine** (perfil de produtor). É exigida para cadastrar produtos | Página pública com o que produz, como vende e onde encontrar. Vê o diretório de comércios |
+| Comércio | Cadastra a **loja** (perfil de comércio) com CNPJ válido | Aparece para os produtores da região, com o que compra e quanto. Vê os preços para lojas e o pedido mínimo, e pede cotações. Pode trocar para "Ver como consumidor" |
 
 No cadastro, a pessoa marca como vai usar o sistema (vender, comprar para o comércio, comprar para consumo) e já é levada a criar a vitrine e/ou a loja.
 
@@ -35,17 +35,21 @@ No cadastro, a pessoa marca como vai usar o sistema (vender, comprar para o com�
 
 | Código | Regra | Onde está no código |
 |---|---|---|
-| RN01 | Só anuncia quem tem vitrine de produtor. Sem vitrine, o sistema leva para criar a vitrine e depois volta ao anúncio | `app/anuncios/routes.py` (`novo`) |
+| RN01 | Só cadastra produtos quem tem vitrine de produtor. Sem vitrine, o sistema leva para criar a vitrine e depois volta ao cadastro do produto | `app/produtos/routes.py` (`novo`) |
 | RN02 | A vitrine precisa de pelo menos uma forma de venda. Quem marca "feira ou ponto fixo" informa onde e quando | `app/perfis/forms.py` |
 | RN03 | Produção orgânica só pode ser declarada com certificadora ou OCS informada. A vitrine mostra "(declarado)", porque a plataforma não confere o registro | `app/perfis/forms.py`, `vitrine.html` |
 | RN04 | O CNPJ do comércio é conferido pelo dígito verificador, nos formatos numérico e alfanumérico, e não pode se repetir entre contas. Trocar o CNPJ tira o selo de verificado | `app/cnpj.py`, `app/perfis/dados.py` |
 | RN05 | Telefone público é **opcional** e decidido pelo próprio usuário (consentimento). O padrão continua sendo a regra D13: contato só depois do aceite da proposta | `app/perfis/forms.py` |
 | RN06 | Dados dos comércios (página e diretório) aparecem só para quem tem vitrine de produtor, para a própria loja e para a administração. Evita raspagem de contatos e garante que a loja seja procurada por quem tem o que vender | `app/perfis/routes.py` (`produtor_obrigatorio`) |
-| RN07 | Produto de origem animal exige o serviço de inspeção. O anúncio mostra até onde ele pode ser vendido (ver seção 6.1) | `app/seed.sql` (atributo 6), `app/inspecao.py` |
+| RN07 | Produto de origem animal exige o serviço de inspeção. A página do produto mostra até onde ele pode ser vendido (ver seção 6.1) | `app/seed.sql` (atributo 6), `app/inspecao.py` |
 | RN08 | Busca e diretórios ordenam por proximidade: mesmo município, mesma região imediata, mesma UF, depois o resto. Não há GPS: a pessoa escolhe a cidade, que fica na sessão, ou o sistema usa a cidade da conta | `app/localidades.py` |
 | RN09 | Verificação de comércio, por enquanto, pelo comando `flask --app app verificar-comercio <id>`, depois de conferir o CNPJ na Receita Federal. A tela de administração vem na Iteração 7 | `app/comandos.py` |
+| RN10 | Todo produto é vendido para pelo menos um público (consumidor final, lojas ou os dois), com preço próprio para cada um. Os campos de um público desmarcado são ignorados. Se o produtor deixa de vender para um público, as propostas pendentes daquele público são encerradas com aviso | `app/produtos/forms.py`, `app/servicos/produtos.py` |
+| RN11 | A inspeção limita a venda: produto **sem registro** só pode ser oferecido a lojas (o cadastro recusa "consumidor final"); com **SIM**, só recebe proposta de comprador do mesmo município; com **SIE**, do mesmo estado. Se a cidade do comprador não é conhecida, vale o aviso na página | `app/inspecao.py`, `app/servicos/produtos.py` |
+| RN12 | O canal da proposta (consumidor ou loja) é decidido no servidor, pelo perfil e pelo modo de quem compra, nunca pelo formulário. A cotação de loja respeita o pedido mínimo, e o produtor vê o nome da loja | `app/visibilidade.py` (`canal_de_compra`), `app/servicos/produtos.py` |
+| RN13 | Um preço que a pessoa não pode ver não aparece no HTML e não influencia filtros nem ordenação por preço. Sem isso, uma loja não verificada descobriria o preço escondido testando faixas de preço | `app/visibilidade.py` (`preco_sql`) |
 
-### Visibilidade de preço (Iteração 4)
+### Visibilidade de preço
 
 | Quem acessa | Produtos listados | Preço mostrado |
 |---|---|---|
@@ -54,7 +58,7 @@ No cadastro, a pessoa marca como vai usar o sistema (vender, comprar para o com�
 | Comércio não verificado, em produto "só verificados" | Aparece | "Preço para lojas verificadas" (o valor não é enviado ao navegador) |
 | Dono do produto ou administração | Todos | Os dois |
 
-O preço de lojas é filtrado no servidor. Testes automáticos vão procurar o valor no HTML de quem não pode vê-lo.
+O preço de lojas é filtrado no servidor. Os testes de `tests/test_visibilidade.py` procuram o valor no HTML de quem não pode vê-lo, em lista, detalhe, vitrine e página inicial, e conferem que filtros de preço não revelam o preço escondido.
 
 ## 4 Requisitos novos
 
@@ -62,11 +66,11 @@ O preço de lojas é filtrado no servidor. Testes automáticos vão procurar o v
 |---|---|---|
 | RF26 | Perfil de produtor com vitrine pública | **Feito** (Iteração 3) |
 | RF27 | Perfil de comércio com CNPJ válido e diretório para produtores | **Feito** (Iteração 3) |
-| RF28 | Produto com público (consumidor, lojas ou ambos) e preço por público | Iteração 4 |
-| RF29 | Preço exibido conforme quem acessa, incluindo "só verificados" | Iteração 4 |
-| RF30 | Busca e diretórios por região (região imediata do IBGE) | **Feito** para produtores e comércios. Anúncios e encomendas na Iteração 4 |
-| RF31 | Pedido do consumidor e cotação da loja (pedido mínimo) | Iteração 4 |
-| RF32 | Disponibilidade sazonal e "disponível agora" | Iteração 4 |
+| RF28 | Produto com público (consumidor, lojas ou ambos) e preço por público | **Feito** (Iteração 4) |
+| RF29 | Preço exibido conforme quem acessa, incluindo "só verificados" | **Feito** (Iteração 4) |
+| RF30 | Busca e diretórios por região (região imediata do IBGE) | **Feito** (produtores e comércios na Iteração 3; produtos e encomendas na 4) |
+| RF31 | Pedido do consumidor e cotação da loja (pedido mínimo) | **Feito** (Iteração 4) |
+| RF32 | Disponibilidade sazonal e "disponível agora" | **Feito** (Iteração 4) |
 | RF33 | Conversas entre produtor, comércio e consumidor | Iteração 5 |
 | RF34 | Contrato de fornecimento com versões e aceite registrado (data, usuário, hash) | Iteração 6 |
 | RF35 | Versão imprimível do contrato | Iteração 6 |
@@ -76,7 +80,7 @@ O preço de lojas é filtrado no servidor. Testes automáticos vão procurar o v
 
 ## 5 Modelo de dados
 
-As tabelas desta revisão estão em `app/schema.sql`. As da Iteração 4 em diante estão marcadas como planejadas no diagrama.
+As tabelas desta revisão estão em `app/schema.sql`. Os contratos (Iteração 6) estão marcados como planejados no diagrama.
 
 ```mermaid
 erDiagram
@@ -88,9 +92,9 @@ erDiagram
     MUNICIPIO ||--o{ PERFIL_COMERCIO : "fica em"
     PERFIL_COMERCIO ||--o{ COMERCIO_INTERESSE : compra
     CATEGORIA ||--o{ COMERCIO_INTERESSE : "é de interesse"
-    USUARIO ||--o{ ANUNCIO : "anuncia (produtor)"
-    CATEGORIA ||--o{ ANUNCIO : classifica
-    ANUNCIO ||--o{ PROPOSTA : recebe
+    USUARIO ||--o{ PRODUTO : "vende (produtor)"
+    CATEGORIA ||--o{ PRODUTO : classifica
+    PRODUTO ||--o{ PROPOSTA : recebe
     USUARIO ||--o{ ENCOMENDA : publica
     ENCOMENDA ||--o{ PROPOSTA : recebe
     PERFIL_PRODUTOR ||--o{ CONTRATO : "fornece (planejado)"
@@ -121,6 +125,29 @@ erDiagram
         text organico "nao, certificado ou ocs"
         text telefone_publico "opcional"
         text foto
+        text status
+    }
+    PRODUTO {
+        int id PK
+        int vendedor_id FK
+        text titulo
+        int para_consumidor "0 ou 1"
+        int para_lojista "0 ou 1"
+        int preco_consumidor_centavos "nulo = a combinar"
+        int preco_lojista_centavos "nulo = a combinar"
+        real pedido_minimo_lojista
+        int so_verificados
+        text disponibilidade "ano_todo, safra ou sob_encomenda"
+        int meses_safra "bit 0 = janeiro"
+        text status
+    }
+    PROPOSTA {
+        int id PK
+        int encomenda_id FK "ou produto_id"
+        int produto_id FK "ou encomenda_id"
+        text canal "consumidor ou lojista (só em produto)"
+        int preco_unitario_centavos
+        real quantidade
         text status
     }
     PERFIL_COMERCIO {
@@ -173,8 +200,8 @@ Mesmo padrão da pesquisa principal: só o que foi conferido na fonte, com link 
 **Impacto no AgroEncomenda:**
 
 - O campo "Serviço de inspeção" é obrigatório em produtos de origem animal.
-- O anúncio mostra a área de venda: SIM, só no município; SIE, só no estado; SIF, Sisbi-POA ou ARTE, todo o país.
-- Há a opção "Sem registro: venda só para estabelecimento inspecionado", para o caso de leite vendido a laticínio. Na Iteração 4 esses produtos só poderão ser oferecidos a lojas.
+- A página do produto mostra a área de venda: SIM, só no município; SIE, só no estado; SIF, Sisbi-POA ou ARTE, todo o país. O sistema recusa proposta de comprador fora dessa área, quando a cidade dele é conhecida.
+- Há a opção "Sem registro: venda só para estabelecimento inspecionado", para o caso de leite vendido a laticínio. Esses produtos só podem ser oferecidos a lojas.
 - Essa última regra é uma **interpretação da plataforma** a partir do art. 3º da Lei nº 1.283/1950 (a fiscalização ocorre nos estabelecimentos que recebem e beneficiam o produto) e deve ser revista com um especialista.
 
 ### 6.2 Produtos orgânicos
@@ -226,6 +253,9 @@ Mesmo padrão da pesquisa principal: só o que foi conferido na fonte, com link 
 | D18 | Diretórios ordenados do mais perto para o mais longe, com "Perto de" e "Só a região de..." | Seção 6.5 |
 | D19 | Selos sempre com texto ("Verificado", "Orgânico (declarado)"), nunca só cor ou ícone | WCAG 2.2, critério 1.4.1 |
 | D20 | Aviso de área de venda logo abaixo do preço em produtos de origem animal | Seção 6.1 |
+| D21 | Faixa fixa no topo, para quem tem loja, dizendo de qual público são os preços na tela, com o botão "Ver como consumidor" ou "Ver como loja" | Evitar que a loja confunda preço de atacado com preço de varejo |
+| D22 | Preço de lojas com rótulo próprio ("Preço para lojas"), pedido mínimo logo abaixo e o preço ao consumidor como referência | A loja calcula a margem de revenda sem abrir outra página |
+| D23 | No card, a safra aparece em texto ("Na safra (jun. a out.)", "Fora da safra · volta em nov. a fev.") | Produto sazonal não deve parecer indisponível sem explicação |
 
 ## 8 Referências
 

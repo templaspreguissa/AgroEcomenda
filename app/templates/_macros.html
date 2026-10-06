@@ -58,26 +58,47 @@
   <span class="etiqueta etiqueta--{{ status }}">{{ rotulos.get(status, status) }}</span>
 {% endmacro %}
 
-{# Card de anúncio (decisão D7 do benchmark): foto, título, preço por unidade, município e data. #}
-{% macro card_anuncio(a) %}
-  <li class="card card--anuncio">
+{# Preço conforme quem acessa (RF29): consumidor vê o preço de consumidor; loja vê o preço para lojas.
+   Quando a pessoa não pode ver o preço, aparece só o aviso: o valor nem chega ao HTML. #}
+{% macro valor_preco(preco, sigla, classe='card__destaque') %}
+  {% if preco.mostrar %}
+    {% if preco.rotulo %}<p class="preco__rotulo">{{ preco.rotulo }}</p>{% endif %}
+    <p class="{{ classe }}">{{ preco.centavos | reais }}{% if preco.centavos %} <span class="card__suave">{{ sigla | por_unidade }}</span>{% endif %}</p>
+    {% if preco.pedido_minimo %}<p class="card__suave">Pedido mínimo: {{ quantidade(preco.pedido_minimo, sigla) }}</p>{% endif %}
+    {% if preco.referencia_consumidor %}<p class="card__suave">Preço ao consumidor: {{ preco.referencia_consumidor | reais }}</p>{% endif %}
+  {% else %}
+    <p class="{{ classe }} preco--fechado">{{ preco.aviso }}</p>
+  {% endif %}
+{% endmacro %}
+
+{# Disponibilidade (RF32): o ano todo, safra (com os meses) ou sob encomenda. #}
+{% macro disponibilidade(p) %}
+  {%- if p.disponibilidade == 'safra' -%}
+    {%- if em_safra(p.meses_safra) %}Na safra ({{ p.meses_safra | meses }}){% else %}Fora da safra · volta em {{ p.meses_safra | meses }}{% endif -%}
+  {%- elif p.disponibilidade == 'sob_encomenda' %}Sob encomenda{% else %}O ano todo{% endif -%}
+{% endmacro %}
+
+{# Card de produto (decisão D7 do benchmark): foto, título, preço por unidade, município e data. #}
+{% macro card_produto(p) %}
+  {% set preco = preco_visivel(p) %}
+  <li class="card card--produto">
     <article>
-      {% if a.foto_principal %}
-        <a class="card__foto" href="{{ url_for('anuncios.detalhe', anuncio_id=a.id) }}" tabindex="-1" aria-hidden="true">
-          <img src="{{ url_for('anuncios.foto', nome=a.foto_principal) }}" alt="" loading="lazy" width="400" height="300">
+      {% if p.foto_principal %}
+        <a class="card__foto" href="{{ url_for('produtos.detalhe', produto_id=p.id) }}" tabindex="-1" aria-hidden="true">
+          <img src="{{ url_for('produtos.foto', nome=p.foto_principal) }}" alt="" loading="lazy" width="400" height="300">
         </a>
       {% else %}
         <div class="card__foto card__foto--vazia" aria-hidden="true">Sem foto</div>
       {% endif %}
       <div class="card__corpo">
-        <p class="card__meta">{{ a.categoria_nome }}</p>
-        <h3 class="card__titulo"><a href="{{ url_for('anuncios.detalhe', anuncio_id=a.id) }}">{{ a.titulo }}</a></h3>
-        <p class="card__destaque">{{ a.preco_centavos | reais }}{% if a.preco_centavos %} <span class="card__suave">{{ a.unidade_sigla | por_unidade }}</span>{% endif %}</p>
+        <p class="card__meta">{{ p.categoria_nome }} · {{ disponibilidade(p) }}</p>
+        <h3 class="card__titulo"><a href="{{ url_for('produtos.detalhe', produto_id=p.id) }}">{{ p.titulo }}</a></h3>
+        {{ valor_preco(preco, p.unidade_sigla) }}
         <ul class="card__dados">
-          <li><span aria-hidden="true">📍</span> {{ a.municipio_nome }}/{{ a.municipio_uf }}</li>
-          {% if a.quantidade_disponivel %}<li><span aria-hidden="true">📦</span> {{ quantidade(a.quantidade_disponivel, a.unidade_sigla) }} disponíveis</li>{% endif %}
+          <li><span aria-hidden="true">📍</span> {{ p.municipio_nome }}/{{ p.municipio_uf }}</li>
+          {% if p.quantidade_disponivel %}<li><span aria-hidden="true">📦</span> {{ quantidade(p.quantidade_disponivel, p.unidade_sigla) }} disponíveis</li>{% endif %}
         </ul>
-        <p class="card__rodape card__suave">Publicado em {{ a.criado_em | data_br }} · por {{ a.vitrine_nome or (a.vendedor_nome | primeiro_nome) }}</p>
+        <p class="card__rodape card__suave">Por {{ p.vitrine_nome or (p.vendedor_nome | primeiro_nome) }} · {{ p.criado_em | data_br }}</p>
       </div>
     </article>
   </li>
@@ -114,11 +135,11 @@
 {% endmacro %}
 
 {# Card de produtor no diretório (RF26, RF30). #}
-{% macro card_produtor(p, categorias) %}
+{% macro card_produtor(p, categorias, total_produtos) %}
   <li class="card card--perfil">
     <article>
       <div class="perfil-mini">
-        {% if p.foto %}<img class="perfil-mini__foto" src="{{ url_for('anuncios.foto', nome=p.foto) }}" alt="" width="64" height="64" loading="lazy">
+        {% if p.foto %}<img class="perfil-mini__foto" src="{{ url_for('produtos.foto', nome=p.foto) }}" alt="" width="64" height="64" loading="lazy">
         {% else %}<span class="perfil-mini__foto perfil-mini__foto--vazia" aria-hidden="true">🌱</span>{% endif %}
         <div>
           <h3 class="card__titulo"><a href="{{ url_for('perfis.vitrine', usuario_id=p.usuario_id) }}">{{ p.nome_vitrine }}</a></h3>
@@ -130,7 +151,7 @@
         {% for chave, rotulo in FORMAS_VENDA.items() %}{% if p[chave] %}<li class="selo">{{ rotulo }}</li>{% endif %}{% endfor %}
         {% if p.organico != 'nao' %}<li class="selo selo--organico">Orgânico (declarado)</li>{% endif %}
       </ul>
-      <p class="card__rodape card__suave">{{ p.produtos_ativos }} produto{{ '' if p.produtos_ativos == 1 else 's' }} à venda</p>
+      <p class="card__rodape card__suave">{% if total_produtos %}{{ total_produtos }} produto{{ '' if total_produtos == 1 else 's' }} à venda{% else %}Nenhum produto à venda para você agora{% endif %}</p>
     </article>
   </li>
 {% endmacro %}

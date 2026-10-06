@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "_macros.html" import campo, grupo_opcoes %}
+{% block titulo %}{{ rotulos.editar if existente else rotulos.titulo }}{% endblock %}
+{% block conteudo %}
+<section class="secao secao--media">
+  <h1>{{ rotulos.editar if existente else rotulos.titulo }}</h1>
+  <p class="texto-apoio">
+    {% if canal == 'lojista' %}Você está comprando como loja, pelo preço para lojas. O produtor vê o nome da sua loja.
+    {% else %}O pedido é uma proposta: o produtor aceita ou recusa. Pagamento e entrega vocês combinam diretamente.{% endif %}
+  </p>
+
+  <div class="resumo">
+    <p class="resumo__titulo"><a href="{{ url_for('produtos.detalhe', produto_id=produto.id) }}">{{ produto.titulo }}</a></p>
+    <p>{{ 'Preço para lojas' if canal == 'lojista' else 'Preço' }}: <strong>{{ preco_tabela | reais }}</strong>{% if preco_tabela %} {{ produto.unidade_sigla | por_unidade }}{% endif %}.
+      {% if canal == 'lojista' and produto.pedido_minimo_lojista %}Pedido mínimo: {{ quantidade(produto.pedido_minimo_lojista, produto.unidade_sigla) }}.{% endif %}
+      {% if produto.quantidade_disponivel %}Disponível: {{ quantidade(produto.quantidade_disponivel, produto.unidade_sigla) }}.{% endif %}
+      Local: {{ produto.municipio_nome }}/{{ produto.municipio_uf }}.</p>
+  </div>
+
+  <form class="formulario" method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {% set unidade = produto.unidade_sigla | por_unidade %}
+    {{ campo(form.preco, dica='Preço ' ~ unidade ~ ', em reais. Pode ser diferente do preço da tabela.', extras={'inputmode': 'decimal', 'placeholder': '0,00'}) }}
+    {{ campo(form.quantidade, extras={'inputmode': 'decimal'}) }}
+    {{ campo(form.prazo_entrega) }}
+    {{ grupo_opcoes(form.transporte) }}
+    {{ campo(form.validade, dica='Depois dessa data sua oferta deixa de valer.') }}
+    {{ campo(form.observacao, dica='Ex.: forma de pagamento, frequência de entrega, dúvidas sobre o produto.', extras={'rows': 3, 'maxlength': 1000}) }}
+    <button class="botao botao--largo" type="submit">{{ 'Salvar' if existente else rotulos.botao }}</button>
+  </form>
+
+  <p><a href="{{ url_for('produtos.detalhe', produto_id=produto.id) }}">Voltar sem enviar</a></p>
+</section>
+{% endblock %}

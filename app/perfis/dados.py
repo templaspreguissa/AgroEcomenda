@@ -6,7 +6,7 @@ from ..util import agora_utc_texto, normalizar_busca
 SQL_PRODUTOR = """
     SELECT pp.*, m.nome AS municipio_nome, m.uf AS municipio_uf, m.regiao_imediata_id,
            r.nome AS regiao_nome, u.nome AS conta_nome, u.criado_em AS desde,
-           (SELECT COUNT(*) FROM anuncio a WHERE a.vendedor_id = pp.usuario_id AND a.status = 'ativo') AS produtos_ativos
+           (SELECT COUNT(*) FROM produto pd WHERE pd.vendedor_id = pp.usuario_id AND pd.status = 'ativo') AS produtos_ativos
       FROM perfil_produtor pp
       JOIN usuario u   ON u.id = pp.usuario_id
       JOIN municipio m ON m.codigo_ibge = pp.municipio_id
@@ -52,19 +52,38 @@ def interesses_do_comercio(db, usuario_id):
     ).fetchall()
 
 
-def categorias_dos_produtores(db, ids):
-    """Categorias em que cada produtor tem anúncio ativo: {usuario_id: ['Hortaliças e verduras', ...]}."""
+def categorias_dos_produtores(db, ids, publico="1 = 1"):
+    """Categorias em que cada produtor tem produto ativo: {usuario_id: ['Hortaliças e verduras', ...]}.
+
+    `publico` é a condição de visibilidade (visibilidade.publico_sql), para contar só o que a pessoa vê.
+    """
     if not ids:
         return {}
     marcadores = ", ".join("?" * len(ids))
     resultado = {}
     for linha in db.execute(
-        f"""SELECT DISTINCT a.vendedor_id, c.nome FROM anuncio a JOIN categoria c ON c.id = a.categoria_id
-             WHERE a.status = 'ativo' AND a.vendedor_id IN ({marcadores}) ORDER BY c.id""",
+        f"""SELECT DISTINCT pd.vendedor_id, c.nome FROM produto pd JOIN categoria c ON c.id = pd.categoria_id
+             WHERE pd.status = 'ativo' AND {publico} AND pd.vendedor_id IN ({marcadores}) ORDER BY c.id""",
         list(ids),
     ):
         resultado.setdefault(linha["vendedor_id"], []).append(linha["nome"])
     return resultado
+
+
+def produtos_por_produtor(db, ids, publico="1 = 1"):
+    """Quantos produtos ativos cada produtor tem, contando só os que a pessoa vê: {usuario_id: n}."""
+    if not ids:
+        return {}
+    marcadores = ", ".join("?" * len(ids))
+    return {
+        linha["vendedor_id"]: linha["total"]
+        for linha in db.execute(
+            f"""SELECT pd.vendedor_id, COUNT(*) AS total FROM produto pd
+                 WHERE pd.status = 'ativo' AND {publico} AND pd.vendedor_id IN ({marcadores})
+                 GROUP BY pd.vendedor_id""",
+            list(ids),
+        )
+    }
 
 
 def interesses_dos_comercios(db, ids):

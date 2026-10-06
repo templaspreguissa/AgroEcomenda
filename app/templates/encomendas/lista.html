@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import card_encomenda %}
+{% from "_macros.html" import card_encomenda, filtro_regiao %}
 {% block titulo %}Encomendas abertas{% endblock %}
 {% block conteudo %}
 <section class="secao">
@@ -11,9 +11,9 @@
     <a class="botao" href="{{ url_for('encomendas.nova') }}">Publicar encomenda</a>
   </div>
 
-  <details class="filtros"{% if filtros_ativos %} open{% endif %}>
+  <details class="filtros"{% if filtros_ativos or erro_perto %} open{% endif %}>
     <summary class="filtros__resumo">Filtrar{% if filtros_ativos %} (filtros ativos){% endif %}</summary>
-    <form class="filtros__form" method="get" action="{{ url_for('encomendas.lista') }}" role="search">
+    <form class="filtros__form filtros__form--largo" method="get" action="{{ url_for('encomendas.lista') }}" role="search">
       <div class="campo">
         <label class="campo__rotulo" for="q">Buscar</label>
         <input class="campo__entrada" id="q" name="q" type="search" value="{{ termo }}" placeholder="Ex.: milho, bezerro, frete">
@@ -46,6 +46,7 @@
           {% endfor %}
         </select>
       </div>
+      {{ filtro_regiao(referencia, so_regiao, erro_perto, municipios) }}
       <div class="filtros__acoes">
         <button class="botao" type="submit">Aplicar</button>
         {% if filtros_ativos %}<a class="botao botao--secundario" href="{{ url_for('encomendas.lista') }}">Limpar filtros</a>{% endif %}
@@ -70,7 +71,7 @@
 
   {% if paginas > 1 %}
     <nav class="paginacao" aria-label="Páginas de resultados">
-      {% set args = {'q': termo or None, 'categoria': categoria, 'uf': uf or None, 'ordem': ordem} %}
+      {% set args = {'q': termo or None, 'categoria': categoria, 'uf': uf or None, 'regiao': '1' if so_regiao else None, 'ordem': ordem} %}
       {% if pagina > 1 %}<a class="botao botao--secundario" href="{{ url_for('encomendas.lista', pagina=pagina - 1, **args) }}">Anterior</a>{% endif %}
       <span>Página {{ pagina }} de {{ paginas }}</span>
       {% if pagina < paginas %}<a class="botao botao--secundario" href="{{ url_for('encomendas.lista', pagina=pagina + 1, **args) }}">Próxima</a>{% endif %}

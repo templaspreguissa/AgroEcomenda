@@ -1,6 +1,6 @@
 """Base e campos reutilizáveis dos formulários (mensagens em português)."""
 from flask_wtf import FlaskForm
-from wtforms import SelectField, StringField
+from wtforms import SelectField, SelectMultipleField, StringField, widgets
 from wtforms.validators import DataRequired, ValidationError
 
 from .db import get_db
@@ -121,3 +121,9 @@ class CampoTelefone(StringField):
             self.digitos = ler_telefone(self.data)
         except ValueError as erro:
             raise ValidationError("Informe o telefone com DDD, por exemplo (34) 99999-0000.") from erro
+
+
+class CaixasDeSelecao(SelectMultipleField):
+    """Várias opções como caixas de seleção (checkbox), em vez de <select multiple>."""
+    widget = widgets.ListWidget(prefix_label=False)
+    option_widget = widgets.CheckboxInput()

@@ -8,12 +8,15 @@ from .. import servicos
 from ..auth.routes import login_obrigatorio
 from ..db import get_db
 from ..formularios import escolhas_categorias
-from ..localidades import municipios_para_lista, rotulo_do_codigo, ufs_carregadas
+from ..localidades import (
+    municipio_de_referencia, municipios_para_lista, proximidade_sql, rotulo_do_codigo, ufs_carregadas,
+)
 from ..util import formatar_numero, hoje, normalizar_busca
 from . import bp
 from .forms import EncomendaForm, PropostaForm
 
 ORDENACOES = {
+    "perto": ("Entrega mais perto de você", None),  # só quando há cidade de referência
     "prazo": ("Prazo mais próximo", "e.prazo_limite ASC, e.id DESC"),
     "recentes": ("Mais recentes", "e.criado_em DESC, e.id DESC"),
 }
@@ -55,10 +58,13 @@ def _escapar_like(texto):
 @bp.route("/encomendas")
 def lista():
     db = get_db()
+    referencia, erro_perto = municipio_de_referencia(db)
     termo = (request.args.get("q") or "").strip()[:100]
     categoria = request.args.get("categoria", type=int)
     uf = (request.args.get("uf") or "").upper()[:2]
-    ordem = request.args.get("ordem") if request.args.get("ordem") in ORDENACOES else "prazo"
+    so_regiao = request.args.get("regiao") == "1" and referencia is not None and referencia["regiao_imediata_id"]
+    ordenacoes = {chave: valor for chave, valor in ORDENACOES.items() if chave != "perto" or referencia is not None}
+    ordem = request.args.get("ordem") if request.args.get("ordem") in ordenacoes else "prazo"
     pagina = max(request.args.get("pagina", 1, type=int), 1)
     por_pagina = current_app.config["ITENS_POR_PAGINA"]
 
@@ -73,7 +79,15 @@ def lista():
     if uf:
         condicoes.append("m.uf = ?")
         parametros.append(uf)
+    if so_regiao:
+        condicoes.append("m.regiao_imediata_id = ?")
+        parametros.append(referencia["regiao_imediata_id"])
     onde = " AND ".join(condicoes)
+    if ordem == "perto":
+        proximidade, parametros_ordem = proximidade_sql("m", referencia)
+        ordem_sql = f"{proximidade}, e.prazo_limite ASC, e.id DESC"
+    else:
+        ordem_sql, parametros_ordem = ORDENACOES[ordem][1], []
     base = """FROM encomenda e
               JOIN unidade_medida u ON u.id = e.unidade_id
               JOIN municipio m      ON m.codigo_ibge = e.municipio_entrega_id
@@ -89,16 +103,17 @@ def lista():
                    c.nome AS categoria_nome, us.nome AS comprador_nome,
                    (SELECT COUNT(*) FROM proposta p WHERE p.encomenda_id = e.id AND p.status = 'pendente') AS propostas_pendentes
               {base} WHERE {onde}
-             ORDER BY {ORDENACOES[ordem][1]} LIMIT ? OFFSET ?""",
-        parametros + [por_pagina, (pagina - 1) * por_pagina],
+             ORDER BY {ordem_sql} LIMIT ? OFFSET ?""",
+        parametros + parametros_ordem + [por_pagina, (pagina - 1) * por_pagina],
     ).fetchall()
 
-    filtros_ativos = bool(termo or categoria or uf)
+    filtros_ativos = bool(termo or categoria or uf or so_regiao)
     return render_template(
         "encomendas/lista.html",
         encomendas=encomendas, total=total, pagina=pagina, paginas=paginas,
         inicio=(pagina - 1) * por_pagina + 1 if total else 0, fim=(pagina - 1) * por_pagina + len(encomendas),
-        termo=termo, categoria=categoria, uf=uf, ordem=ordem, ordenacoes=ORDENACOES,
+        termo=termo, categoria=categoria, uf=uf, ordem=ordem, ordenacoes=ordenacoes,
+        so_regiao=bool(so_regiao), referencia=referencia, erro_perto=erro_perto, municipios=municipios_para_lista(db),
         categorias=escolhas_categorias(db, rotulo_geral="Tudo em {nome}"), ufs=ufs_carregadas(db),
         filtros_ativos=filtros_ativos,
     )

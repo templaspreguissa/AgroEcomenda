@@ -81,3 +81,22 @@ def test_comando_carregar_demo(app):
 
     de_novo = executor.invoke(args=["carregar-demo"])
     assert de_novo.exit_code != 0 and "já foram carregados" in de_novo.output
+
+
+def test_init_db_apaga_tabelas_de_versoes_antigas(app):
+    """Quem vem da Iteração 3 tem a tabela 'anuncio' apontando para 'usuario'. O init-db precisa funcionar."""
+    from app.db import init_db
+    with app.app_context():
+        db = get_db()
+        with db:
+            db.execute(
+                "INSERT INTO usuario (nome, email, senha_hash, tipo_pessoa, termos_versao, termos_aceitos_em) "
+                "VALUES ('A', 'a@x.com', 'h', 'PF', 'v', '2026-01-01 00:00:00')"
+            )
+            db.execute("CREATE TABLE anuncio (id INTEGER PRIMARY KEY, vendedor_id INTEGER REFERENCES usuario(id))")
+            db.execute("INSERT INTO anuncio (vendedor_id) VALUES (1)")
+        init_db()
+        nomes = {linha[0] for linha in db.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+        assert "anuncio" not in nomes and "produto" in nomes
+        assert db.execute("SELECT COUNT(*) FROM usuario").fetchone()[0] == 0
+        assert db.execute("PRAGMA foreign_keys").fetchone()[0] == 1

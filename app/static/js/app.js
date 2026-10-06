@@ -42,6 +42,19 @@ document.addEventListener("DOMContentLoaded", () => {
     atualizar();
   });
 
+  // Blocos que só fazem sentido com uma opção marcada, como o preço para lojas ou os meses da safra.
+  // data-mostrar-quando="nome=valor": aparece quando o campo "nome" (caixa ou opção) com esse valor está marcado.
+  // Sem JavaScript, tudo aparece, e o servidor ignora os campos que não valem.
+  document.querySelectorAll("[data-mostrar-quando]").forEach((bloco) => {
+    const [nome, valor] = bloco.dataset.mostrarQuando.split("=");
+    const campos = bloco.closest("form").querySelectorAll(`[name="${nome}"]`);
+    const atualizar = () => {
+      bloco.hidden = ![...campos].some((campo) => campo.checked && campo.value === valor);
+    };
+    campos.forEach((campo) => campo.addEventListener("change", atualizar));
+    atualizar();
+  });
+
   // Pede confirmação antes de ações que não podem ser desfeitas (aceitar, recusar, cancelar, retirar).
   document.querySelectorAll("form[data-confirmar]").forEach((formulario) => {
     formulario.addEventListener("submit", (evento) => {

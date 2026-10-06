@@ -73,8 +73,8 @@
                 <a href="{{ url_for('encomendas.detalhe', encomenda_id=p.encomenda_id) }}">{{ p.titulo }}</a>
                 <span class="card__suave">Venda para encomenda · {{ p.preco_unitario_centavos | reais }} {{ p.unidade_sigla | por_unidade }} · {{ quantidade(p.quantidade, p.unidade_sigla) }}</span>
               {% else %}
-                <a href="{{ url_for('anuncios.detalhe', anuncio_id=p.anuncio_id) }}">{{ p.titulo }}</a>
-                <span class="card__suave">Compra em anúncio · {{ p.preco_unitario_centavos | reais }} {{ p.unidade_sigla | por_unidade }} · {{ quantidade(p.quantidade, p.unidade_sigla) }}</span>
+                <a href="{{ url_for('produtos.detalhe', produto_id=p.produto_id) }}">{{ p.titulo }}</a>
+                <span class="card__suave">{{ 'Cotação como loja' if p.canal == 'lojista' else 'Pedido de compra' }} · {{ p.preco_unitario_centavos | reais }} {{ p.unidade_sigla | por_unidade }} · {{ quantidade(p.quantidade, p.unidade_sigla) }}</span>
               {% endif %}
               <span>{{ etiqueta(p.status, STATUS_PROPOSTA) }}</span>
             </li>
@@ -86,23 +86,28 @@
     </section>
   </div>
 
-  <section class="cartao" aria-labelledby="meus-anuncios">
+  <section class="cartao" aria-labelledby="meus-produtos">
     <div class="cabecalho-secao">
-      <h2 id="meus-anuncios" class="cartao__titulo">Meus anúncios</h2>
-      <a class="botao botao--pequeno botao--secundario" href="{{ url_for('anuncios.novo') }}">Anunciar produto</a>
+      <h2 id="meus-produtos" class="cartao__titulo">Meus produtos</h2>
+      <a class="botao botao--pequeno botao--secundario" href="{{ url_for('produtos.novo') }}">Cadastrar produto</a>
     </div>
-    {% if meus_anuncios %}
+    {% if meus_produtos %}
       <ul class="lista-painel">
-        {% for a in meus_anuncios %}
+        {% for a in meus_produtos %}
           <li>
-            <a href="{{ url_for('anuncios.detalhe', anuncio_id=a.id) }}">{{ a.titulo }}</a>
-            <span class="card__suave">{{ a.preco_centavos | reais }}{% if a.preco_centavos %} {{ a.unidade_sigla | por_unidade }}{% endif %}</span>
-            <span>{{ etiqueta(a.status, STATUS_ANUNCIO) }}{% if a.pendentes %} <strong class="contador">{{ a.pendentes }} proposta{{ '' if a.pendentes == 1 else 's' }} de compra para responder</strong>{% endif %}</span>
+            <a href="{{ url_for('produtos.detalhe', produto_id=a.id) }}">{{ a.titulo }}</a>
+            <span class="card__suave">
+              {%- if a.para_consumidor %}Consumidor: {{ a.preco_consumidor_centavos | reais }}{% endif %}
+              {%- if a.para_consumidor and a.para_lojista %} · {% endif %}
+              {%- if a.para_lojista %}Lojas: {{ a.preco_lojista_centavos | reais }}{% endif %}
+              {%- if a.preco_consumidor_centavos or a.preco_lojista_centavos %} ({{ a.unidade_sigla | por_unidade }}){% endif -%}
+            </span>
+            <span>{{ etiqueta(a.status, STATUS_PRODUTO) }}{% if a.pendentes %} <strong class="contador">{{ a.pendentes }} proposta{{ '' if a.pendentes == 1 else 's' }} de compra para responder</strong>{% endif %}</span>
           </li>
         {% endfor %}
       </ul>
     {% else %}
-      <p class="vazio">Você ainda não publicou anúncios. <a href="{{ url_for('anuncios.novo') }}">Anunciar agora</a></p>
+      <p class="vazio">Você ainda não cadastrou produtos. <a href="{{ url_for('produtos.novo') }}">Cadastrar agora</a></p>
     {% endif %}
   </section>
 </section>

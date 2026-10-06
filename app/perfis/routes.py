@@ -2,9 +2,9 @@
 import functools
 from math import ceil
 
-from flask import abort, current_app, flash, g, redirect, render_template, request, url_for
+from flask import abort, current_app, flash, g, redirect, render_template, request, session, url_for
 
-from .. import cnpj
+from .. import cnpj, visibilidade
 from ..auth.routes import destino_seguro, login_obrigatorio
 from ..db import get_db
 from ..formularios import escolhas_categorias
@@ -12,7 +12,7 @@ from ..fotos import FotoInvalida, apagar_fotos, arquivos_enviados, processar_fot
 from ..localidades import (
     municipio_de_referencia, municipios_para_lista, proximidade_sql, rotulo_do_codigo, ufs_carregadas,
 )
-from ..servicos import SQL_ANUNCIO, SQL_ENCOMENDA, expirar_encomendas_vencidas
+from ..servicos import SQL_ENCOMENDA, SQL_PRODUTO, expirar_encomendas_vencidas
 from ..util import FORMAS_VENDA, TIPOS_COMERCIO, formatar_telefone, normalizar_busca
 from . import bp, dados
 from .forms import ContaForm, PerfilComercioForm, PerfilProdutorForm
@@ -106,13 +106,16 @@ def vitrine(usuario_id):
     sou_dono = bool(g.usuario) and g.usuario["id"] == usuario_id
     if perfil is None or (perfil["status"] != "ativo" and not sou_dono and not _eh_admin()):
         abort(404)
+    # O dono vê todos os seus produtos. Os outros veem os do seu público (consumidor ou loja).
+    publico = "1 = 1" if sou_dono or _eh_admin() else visibilidade.publico_sql("pd")
     produtos = db.execute(
-        SQL_ANUNCIO + " WHERE a.vendedor_id = ? AND a.status = 'ativo' ORDER BY a.criado_em DESC, a.id DESC",
+        SQL_PRODUTO + f" WHERE pd.vendedor_id = ? AND pd.status = 'ativo' AND {publico}"
+        " ORDER BY pd.criado_em DESC, pd.id DESC",
         (usuario_id,),
     ).fetchall()
     return render_template(
         "perfis/vitrine.html", perfil=perfil, produtos=produtos, sou_dono=sou_dono,
-        categorias=dados.categorias_dos_produtores(db, [usuario_id]).get(usuario_id, []),
+        categorias=dados.categorias_dos_produtores(db, [usuario_id], publico).get(usuario_id, []),
     )
 
 
@@ -126,17 +129,18 @@ def produtores():
     uf = (request.args.get("uf") or "").upper()[:2]
     so_regiao = request.args.get("regiao") == "1" and referencia is not None and referencia["regiao_imediata_id"]
 
+    publico = visibilidade.publico_sql("pd")
     condicoes, parametros = ["pp.status = 'ativo'"], []
     for palavra in normalizar_busca(termo).split():
         condicoes.append(
-            "(pp.nome_busca LIKE ? ESCAPE '\\' OR EXISTS (SELECT 1 FROM anuncio a WHERE a.vendedor_id = pp.usuario_id "
-            "AND a.status = 'ativo' AND a.titulo_busca LIKE ? ESCAPE '\\'))"
+            "(pp.nome_busca LIKE ? ESCAPE '\\' OR EXISTS (SELECT 1 FROM produto pd WHERE pd.vendedor_id = pp.usuario_id "
+            f"AND pd.status = 'ativo' AND {publico} AND pd.titulo_busca LIKE ? ESCAPE '\\'))"
         )
         parametros += [f"%{_escapar_like(palavra)}%"] * 2
     if categoria:
         condicoes.append(
-            "EXISTS (SELECT 1 FROM anuncio a JOIN categoria c ON c.id = a.categoria_id WHERE a.vendedor_id = pp.usuario_id "
-            "AND a.status = 'ativo' AND (a.categoria_id = ? OR c.categoria_pai_id = ?))"
+            "EXISTS (SELECT 1 FROM produto pd JOIN categoria c ON c.id = pd.categoria_id WHERE pd.vendedor_id = pp.usuario_id "
+            f"AND pd.status = 'ativo' AND {publico} AND (pd.categoria_id = ? OR c.categoria_pai_id = ?))"
         )
         parametros += [categoria, categoria]
     if uf:
@@ -153,14 +157,17 @@ def produtores():
         parametros,
     ).fetchone()[0]
     pagina, paginas, por_pagina = _paginar(total)
+    visiveis = f"(SELECT COUNT(*) FROM produto pd WHERE pd.vendedor_id = pp.usuario_id AND pd.status = 'ativo' AND {publico})"
     lista = db.execute(
-        dados.SQL_PRODUTOR + f" WHERE {onde} ORDER BY {ordem}, produtos_ativos DESC, pp.nome_busca LIMIT ? OFFSET ?",
+        dados.SQL_PRODUTOR + f" WHERE {onde} ORDER BY {ordem}, {visiveis} DESC, pp.nome_busca LIMIT ? OFFSET ?",
         parametros + parametros_ordem + [por_pagina, (pagina - 1) * por_pagina],
     ).fetchall()
+    ids = [p["usuario_id"] for p in lista]
 
     return render_template(
         "perfis/produtores.html", produtores=lista, total=total, pagina=pagina, paginas=paginas,
-        categorias_por_produtor=dados.categorias_dos_produtores(db, [p["usuario_id"] for p in lista]),
+        categorias_por_produtor=dados.categorias_dos_produtores(db, ids, publico),
+        produtos_por_produtor=dados.produtos_por_produtor(db, ids, publico),
         termo=termo, categoria=categoria, uf=uf, so_regiao=bool(so_regiao), referencia=referencia,
         erro_perto=erro_perto, categorias=escolhas_categorias(db, rotulo_geral="Tudo em {nome}"),
         ufs=ufs_carregadas(db), municipios=municipios_para_lista(db),
@@ -312,3 +319,16 @@ def editar_conta():
         return redirect(url_for("main.painel"))
     return render_template("perfis/conta_form.html", form=form, municipios=municipios_para_lista(db))
 
+
+
+# ---------- ver preços como loja ou como consumidor (RF29) ----------
+
+@bp.route("/ver-como", methods=["POST"])
+@login_obrigatorio
+def ver_como():
+    """Quem tem loja pode ver o site como consumidor (preço de varejo) e voltar para o modo loja."""
+    if request.form.get("modo") == visibilidade.MODO_CONSUMIDOR:
+        session["ver_como"] = visibilidade.MODO_CONSUMIDOR
+    else:
+        session.pop("ver_como", None)
+    return redirect(destino_seguro(request.form.get("voltar")) or url_for("produtos.lista"))

@@ -1,7 +1,7 @@
 """Páginas públicas e painel do usuário."""
 from flask import g, render_template
 
-from .. import servicos
+from .. import servicos, visibilidade
 from ..auth.routes import login_obrigatorio
 from ..db import get_db
 from ..perfis import dados as perfis
@@ -24,9 +24,10 @@ def categorias_com_subcategorias():
 @bp.route("/")
 def index():
     recentes = get_db().execute(
-        servicos.SQL_ANUNCIO + " WHERE a.status = 'ativo' ORDER BY a.criado_em DESC, a.id DESC LIMIT 6"
+        servicos.SQL_PRODUTO + f" WHERE pd.status = 'ativo' AND {visibilidade.publico_sql('pd')}"
+        " ORDER BY pd.criado_em DESC, pd.id DESC LIMIT 6"
     ).fetchall()
-    return render_template("main/index.html", categorias=categorias_com_subcategorias(), anuncios_recentes=recentes)
+    return render_template("main/index.html", categorias=categorias_com_subcategorias(), produtos_recentes=recentes)
 
 
 @bp.route("/termos")
@@ -53,24 +54,25 @@ def painel():
             ORDER BY CASE WHEN e.status IN ('aberta', 'em_negociacao') THEN 0 ELSE 1 END, e.prazo_limite, e.id DESC""",
         (usuario_id,),
     ).fetchall()
-    # Propostas que o usuário fez: como vendedor (em encomendas) ou como comprador (em anúncios).
+    # Propostas que o usuário fez: como vendedor (em encomendas) ou como comprador (em produtos).
     propostas_enviadas = db.execute(
         """SELECT p.id, p.status, p.preco_unitario_centavos, p.quantidade, p.prazo_entrega, u.sigla AS unidade_sigla,
-                  p.encomenda_id, p.anuncio_id, COALESCE(e.titulo, a.titulo) AS titulo
+                  p.encomenda_id, p.produto_id, p.canal, COALESCE(e.titulo, pd.titulo) AS titulo
              FROM proposta p
              LEFT JOIN encomenda e ON e.id = p.encomenda_id
-             LEFT JOIN anuncio a   ON a.id = p.anuncio_id
+             LEFT JOIN produto pd  ON pd.id = p.produto_id
              JOIN unidade_medida u ON u.id = p.unidade_id
             WHERE p.autor_id = ?
             ORDER BY CASE p.status WHEN 'pendente' THEN 0 WHEN 'aceita' THEN 1 ELSE 2 END, p.criado_em DESC""",
         (usuario_id,),
     ).fetchall()
-    meus_anuncios = db.execute(
-        """SELECT a.id, a.titulo, a.status, a.preco_centavos, u.sigla AS unidade_sigla,
-                  (SELECT COUNT(*) FROM proposta p WHERE p.anuncio_id = a.id AND p.status = 'pendente') AS pendentes
-             FROM anuncio a JOIN unidade_medida u ON u.id = a.unidade_id
-            WHERE a.vendedor_id = ?
-            ORDER BY CASE a.status WHEN 'ativo' THEN 0 WHEN 'pausado' THEN 1 ELSE 2 END, a.criado_em DESC""",
+    meus_produtos = db.execute(
+        """SELECT pd.id, pd.titulo, pd.status, pd.para_consumidor, pd.para_lojista, pd.preco_consumidor_centavos,
+                  pd.preco_lojista_centavos, u.sigla AS unidade_sigla,
+                  (SELECT COUNT(*) FROM proposta p WHERE p.produto_id = pd.id AND p.status = 'pendente') AS pendentes
+             FROM produto pd JOIN unidade_medida u ON u.id = pd.unidade_id
+            WHERE pd.vendedor_id = ?
+            ORDER BY CASE pd.status WHEN 'ativo' THEN 0 WHEN 'pausado' THEN 1 ELSE 2 END, pd.criado_em DESC""",
         (usuario_id,),
     ).fetchall()
     dados = db.execute(
@@ -80,6 +82,6 @@ def painel():
     ).fetchone()
     return render_template(
         "main/painel.html", usuario=dados, minhas_encomendas=minhas_encomendas,
-        propostas_enviadas=propostas_enviadas, meus_anuncios=meus_anuncios,
+        propostas_enviadas=propostas_enviadas, meus_produtos=meus_produtos,
         vitrine=perfis.perfil_produtor(db, usuario_id), loja=perfis.perfil_comercio(db, usuario_id),
     )

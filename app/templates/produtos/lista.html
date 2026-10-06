@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% from "_macros.html" import card_produto, filtro_regiao, paginacao %}
+{% block titulo %}Produtos{% endblock %}
+{% block conteudo %}
+<section class="secao">
+  <div class="cabecalho-secao">
+    <div>
+      <h1>Produtos</h1>
+      <p class="texto-apoio">
+        {% if modo_acesso == 'loja' %}O que os produtores vendem para lojas, com preço de atacado e pedido mínimo.
+        {% else %}O que os produtores vendem direto para você{% if referencia %}, dos mais perto de {{ referencia.nome }}/{{ referencia.uf }} para os mais longe{% endif %}.{% endif %}
+      </p>
+    </div>
+    <a class="botao" href="{{ url_for('produtos.novo') }}">Cadastrar produto</a>
+  </div>
+
+  {% if modo_acesso != 'loja' and not (g.usuario and g.usuario.tem_comercio) %}
+    <p class="chamada chamada--suave">Tem um mercado, restaurante ou distribuidora? <a href="{{ url_for('perfis.editar_comercio') if g.usuario else url_for('auth.cadastro', uso='comercio') }}">Cadastre sua loja</a> para ver os produtos e os preços para lojas.</p>
+  {% endif %}
+
+  <details class="filtros"{% if filtros_ativos or erro_perto %} open{% endif %}>
+    <summary class="filtros__resumo">Filtrar{% if filtros_ativos %} (filtros ativos){% endif %}</summary>
+    <form class="filtros__form filtros__form--largo" method="get" action="{{ url_for('produtos.lista') }}" role="search">
+      <div class="campo">
+        <label class="campo__rotulo" for="q">Buscar</label>
+        <input class="campo__entrada" id="q" name="q" type="search" value="{{ termo }}" placeholder="Ex.: queijo, ovos, alface">
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="categoria">Categoria</label>
+        <select class="campo__entrada" id="categoria" name="categoria">
+          <option value="">Todas</option>
+          {% for grupo, opcoes in categorias.items() %}
+            <optgroup label="{{ grupo }}">
+              {% for valor, rotulo in opcoes %}<option value="{{ valor }}"{% if categoria == valor %} selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+            </optgroup>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="uf">Estado</label>
+        <select class="campo__entrada" id="uf" name="uf">
+          <option value="">Todos</option>
+          {% for sigla in ufs %}<option value="{{ sigla }}"{% if uf == sigla %} selected{% endif %}>{{ sigla }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="ordem">Ordenar por</label>
+        <select class="campo__entrada" id="ordem" name="ordem">
+          {% for chave, rotulo in ordenacoes.items() %}<option value="{{ chave }}"{% if ordem == chave %} selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="preco_min">Preço mínimo (R$)</label>
+        <input class="campo__entrada" id="preco_min" name="preco_min" inputmode="decimal" value="{{ preco_min }}" placeholder="0,00">
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="preco_max">Preço máximo (R$)</label>
+        <input class="campo__entrada" id="preco_max" name="preco_max" inputmode="decimal" value="{{ preco_max }}" placeholder="0,00">
+      </div>
+      {{ filtro_regiao(referencia, so_regiao, erro_perto, municipios) }}
+      <label class="opcao opcao--filtro"><input type="checkbox" name="agora" value="1"{% if agora %} checked{% endif %}> <span>Só o que tem neste mês</span></label>
+      <div class="filtros__acoes">
+        <button class="botao" type="submit">Aplicar</button>
+        {% if filtros_ativos %}<a class="botao botao--secundario" href="{{ url_for('produtos.lista') }}">Limpar filtros</a>{% endif %}
+      </div>
+    </form>
+  </details>
+
+  <p class="contagem" role="status">
+    {% if total %}Mostrando {{ inicio }}–{{ fim }} de {{ total }} produto{{ '' if total == 1 else 's' }}{% else %}Nenhum produto encontrado{% endif %}
+  </p>
+
+  {% if produtos %}
+    <ul class="cards">{% for p in produtos %}{{ card_produto(p) }}{% endfor %}</ul>
+  {% else %}
+    <div class="vazio-bloco">
+      <p>{% if filtros_ativos %}Nenhum produto com esses filtros. Tente outros termos ou limpe os filtros.{% else %}Ainda não há produtos.{% endif %}</p>
+      <p>Não achou o que procura? <a href="{{ url_for('encomendas.nova') }}">Publique uma encomenda</a> e receba propostas.</p>
+    </div>
+  {% endif %}
+
+  {{ paginacao('produtos.lista', pagina, paginas, {'q': termo or None, 'categoria': categoria, 'uf': uf or None,
+      'regiao': '1' if so_regiao else None, 'agora': '1' if agora else None, 'preco_min': preco_min or None,
+      'preco_max': preco_max or None, 'ordem': ordem}) }}
+</section>
+{% endblock %}

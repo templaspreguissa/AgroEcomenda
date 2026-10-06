@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 {% from "_macros.html" import campo, grupo_opcoes, selecao %}
-{% block titulo %}{{ 'Editar anúncio' if editando else 'Anunciar' }}{% endblock %}
+{% block titulo %}{{ 'Editar produto' if editando else 'Cadastrar produto' }}{% endblock %}
 {% block conteudo %}
 <section class="secao secao--media">
-  <h1>{{ 'Editar anúncio' if editando else 'Anunciar' }}</h1>
-  <p class="texto-apoio">Mostre o que você vende. Compradores podem enviar uma proposta de compra pelo anúncio.</p>
+  <h1>{{ 'Editar produto' if editando else 'Cadastrar produto' }}</h1>
+  <p class="texto-apoio">Mostre o que você produz. Você escolhe se vende para o consumidor final, para lojas ou para os dois, com um preço para cada público.</p>
 
   <form class="formulario" method="post" enctype="multipart/form-data" novalidate data-mapa-categorias="{{ mapa_categorias }}">
     {{ form.hidden_tag() }}
 
     <fieldset class="etapa">
-      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">1</span> O que você vende</legend>
+      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">1</span> O que você produz</legend>
       {{ campo(form.titulo, dica='Ex.: alface crespa, ovos caipira, queijo minas artesanal, milho em grão.', extras={'maxlength': 100}) }}
       {{ selecao(form.categoria_id, "Escolha a categoria") }}
 
@@ -43,26 +43,57 @@
     </fieldset>
 
     <fieldset class="etapa">
-      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">2</span> Preço, quantidade e local</legend>
+      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">2</span> Quanto, onde e quando</legend>
       <div class="linha-campos">
-        {{ campo(form.preco, dica='Por unidade. Deixe em branco para "a combinar".', extras={'inputmode': 'decimal', 'placeholder': '0,00'}) }}
         {{ selecao(form.unidade_id, "Escolha a unidade") }}
+        {{ campo(form.quantidade, extras={'inputmode': 'decimal', 'placeholder': 'Ex.: 500'}) }}
       </div>
-      {{ campo(form.quantidade, extras={'inputmode': 'decimal', 'placeholder': 'Ex.: 500'}) }}
       {{ campo(form.municipio, dica='Comece a digitar e escolha na lista. Formato: Município/UF.', autocomplete='off', extras={'list': 'lista-municipios', 'placeholder': 'Ex.: Uberaba/MG'}) }}
       <datalist id="lista-municipios">
         {% for municipio in municipios %}<option value="{{ municipio }}">{% endfor %}
       </datalist>
+      {{ grupo_opcoes(form.disponibilidade) }}
+      <fieldset class="campo{% if form.meses.errors %} campo--erro{% endif %}" data-mostrar-quando="disponibilidade=safra">
+        <legend class="campo__rotulo">{{ form.meses.label.text }}</legend>
+        <div class="meses">
+          {% for opcao in form.meses %}<label class="opcao">{{ opcao() }} <span>{{ opcao.label.text }}</span></label>{% endfor %}
+        </div>
+        {% if form.meses.errors %}<p class="campo__erro">{{ form.meses.errors[0] }}</p>{% endif %}
+      </fieldset>
     </fieldset>
 
     <fieldset class="etapa">
-      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">3</span> Fotos</legend>
+      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">3</span> Para quem você vende e por quanto</legend>
+      <p class="campo__dica">Os preços são por unidade de venda. Deixe o preço em branco para “a combinar”. Lojas veem o preço para lojas e consumidores veem o preço para o consumidor.</p>
+      {% if form.erro_publico %}<p class="campo__erro" id="publico-erro">{{ form.erro_publico }}</p>{% endif %}
+
+      <div class="publico{% if form.erro_publico %} campo--erro{% endif %}">
+        <label class="opcao opcao--destaque">{{ form.para_consumidor(**({'aria-describedby': 'publico-erro'} if form.erro_publico else {})) }} <span>{{ form.para_consumidor.label.text }}</span></label>
+        <div class="publico__campos" data-mostrar-quando="para_consumidor=y">
+          {{ campo(form.preco_consumidor, dica='Quanto o consumidor paga.', extras={'inputmode': 'decimal', 'placeholder': '0,00'}) }}
+        </div>
+      </div>
+
+      <div class="publico{% if form.erro_publico %} campo--erro{% endif %}">
+        <label class="opcao opcao--destaque">{{ form.para_lojista() }} <span>{{ form.para_lojista.label.text }}</span></label>
+        <div class="publico__campos" data-mostrar-quando="para_lojista=y">
+          <div class="linha-campos">
+            {{ campo(form.preco_lojista, dica='Preço de atacado, para revenda.', extras={'inputmode': 'decimal', 'placeholder': '0,00'}) }}
+            {{ campo(form.pedido_minimo, dica='Na mesma unidade de venda.', extras={'inputmode': 'decimal', 'placeholder': 'Ex.: 20'}) }}
+          </div>
+          <label class="opcao">{{ form.so_verificados() }} <span>{{ form.so_verificados.label.text }}</span></label>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="etapa">
+      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">4</span> Fotos</legend>
       {% if fotos %}
         <p class="campo__rotulo">Fotos atuais</p>
         <ul class="fotos-atuais">
           {% for foto in fotos %}
             <li>
-              <img src="{{ url_for('anuncios.foto', nome=foto.arquivo) }}" alt="{{ foto.texto_alternativo }}" width="160" height="120" loading="lazy">
+              <img src="{{ url_for('produtos.foto', nome=foto.arquivo) }}" alt="{{ foto.texto_alternativo }}" width="160" height="120" loading="lazy">
               <label class="opcao"><input type="checkbox" name="remover_foto" value="{{ foto.id }}"> <span>Remover</span></label>
             </li>
           {% endfor %}
@@ -77,9 +108,9 @@
       </div>
     </fieldset>
 
-    <button class="botao botao--largo" type="submit">{{ 'Salvar alterações' if editando else 'Publicar anúncio' }}</button>
+    <button class="botao botao--largo" type="submit">{{ 'Salvar alterações' if editando else 'Cadastrar produto' }}</button>
   </form>
 
-  <p><a href="{{ url_for('anuncios.detalhe', anuncio_id=anuncio.id) if editando else url_for('anuncios.lista') }}">Voltar sem salvar</a></p>
+  <p><a href="{{ url_for('produtos.detalhe', produto_id=produto.id) if editando else url_for('produtos.lista') }}">Voltar sem salvar</a></p>
 </section>
 {% endblock %}

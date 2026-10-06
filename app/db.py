@@ -36,11 +36,22 @@ def close_db(_erro=None):
 
 
 def init_db():
+    """Apaga todas as tabelas (inclusive as de versões antigas, como 'anuncio') e cria o esquema atual."""
     db = get_db()
-    with current_app.open_resource("schema.sql") as arquivo:
-        db.executescript(arquivo.read().decode("utf-8"))
-    with current_app.open_resource("seed.sql") as arquivo:
-        db.executescript(arquivo.read().decode("utf-8"))
+    # Sem isso, uma tabela antiga que aponta para 'usuario' impede de apagar 'usuario'.
+    db.execute("PRAGMA foreign_keys = OFF")
+    try:
+        tabelas = [linha[0] for linha in db.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+        )]
+        for tabela in tabelas:
+            db.execute(f'DROP TABLE IF EXISTS "{tabela}"')
+        with current_app.open_resource("schema.sql") as arquivo:
+            db.executescript(arquivo.read().decode("utf-8"))
+        with current_app.open_resource("seed.sql") as arquivo:
+            db.executescript(arquivo.read().decode("utf-8"))
+    finally:
+        db.execute("PRAGMA foreign_keys = ON")
 
 
 def buscar_municipios_ibge(uf):

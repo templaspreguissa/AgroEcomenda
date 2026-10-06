@@ -10,7 +10,7 @@ from app.db import get_db
 from .conftest import (
     SACRAMENTO, UBERABA, cadastrar, cliente_logado, criar_comercio, criar_produtor, criar_usuario, token_csrf,
 )
-from .test_anuncios import anunciar, id_criado, jpeg
+from .test_produtos import cadastrar_produto, id_criado, jpeg
 
 HORTALICAS, QUEIJOS, PRODUTOS_ORIGEM_ANIMAL, OVOS = 12, 31, 3, 32
 
@@ -140,11 +140,11 @@ def test_foto_da_vitrine_sem_exif_e_troca_apaga_a_antiga(app, pessoas, client):
 def test_vitrine_mostra_os_produtos_ativos(app, pessoas, client):
     produtora_id, produtora = pessoas["produtora"]
     salvar_vitrine(produtora)
-    anuncio_id = id_criado(anunciar(produtora))
+    produto_id = id_criado(cadastrar_produto(produtora))
     pagina = client.get(f"/produtores/{produtora_id}").get_data(as_text=True)
     assert "Queijo minas artesanal" in pagina and "Queijos e laticínios" in pagina
-    detalhe = client.get(f"/anuncios/{anuncio_id}").get_data(as_text=True)
-    assert f'href="/produtores/{produtora_id}"' in detalhe  # o anúncio leva à vitrine
+    detalhe = client.get(f"/produtos/{produto_id}").get_data(as_text=True)
+    assert f'href="/produtores/{produtora_id}"' in detalhe  # o produto leva à vitrine
 
 
 def test_vitrine_oculta_some_para_os_outros(app, pessoas, client):
@@ -159,15 +159,15 @@ def test_vitrine_oculta_some_para_os_outros(app, pessoas, client):
     assert "Sítio Teste" not in client.get("/produtores").get_data(as_text=True)
 
 
-def test_produtora_cria_vitrine_e_volta_para_anunciar(pessoas):
+def test_produtora_cria_vitrine_e_volta_para_cadastrar_produto(pessoas):
     _, produtora = pessoas["produtora"]
-    url = "/minha-vitrine?next=/anuncios/novo"
+    url = "/minha-vitrine?next=/produtos/novo"
     dados = {
         "csrf_token": token_csrf(produtora, url), "nome_vitrine": "Sítio Boa Vista", "municipio": "Uberaba/MG",
         "vende_retirada": "y", "organico": "nao",
     }
     resposta = produtora.post(url, data=dados)
-    assert resposta.headers["Location"] == "/anuncios/novo"
+    assert resposta.headers["Location"] == "/produtos/novo"
 
 
 # ---------- perfil de comércio (RF27) ----------
@@ -285,7 +285,7 @@ def test_diretorio_de_produtores_busca_por_produto_e_categoria(app, pessoas, cli
     outro = criar_usuario(app, "Carlos Mendes", "carlos@exemplo.com")
     salvar_vitrine(produtora)
     criar_produtor(app, outro, "Fazenda Santa Clara", municipio_id=SACRAMENTO)
-    anunciar(produtora)  # queijo
+    cadastrar_produto(produtora)  # queijo
 
     def pagina(consulta=""):
         return client.get("/produtores" + consulta).get_data(as_text=True)

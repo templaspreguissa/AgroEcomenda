@@ -1,4 +1,4 @@
-"""Upload seguro de fotos de anúncios (OWASP File Upload Cheat Sheet).
+"""Upload seguro de fotos de produtos e vitrines (OWASP File Upload Cheat Sheet).
 
 - só JPEG, PNG ou WebP, conferidos pelo conteúdo (Pillow), não pela extensão nem pelo Content-Type;
 - tamanho máximo por arquivo e proteção contra "bombas de descompressão";

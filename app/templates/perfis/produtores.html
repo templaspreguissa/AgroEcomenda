@@ -17,7 +17,7 @@
 
   <details class="filtros"{% if filtros_ativos or erro_perto or not referencia %} open{% endif %}>
     <summary class="filtros__resumo">Filtrar{% if filtros_ativos %} (filtros ativos){% endif %}</summary>
-    <form class="filtros__form filtros__form--anuncios" method="get" action="{{ url_for('perfis.produtores') }}" role="search">
+    <form class="filtros__form filtros__form--largo" method="get" action="{{ url_for('perfis.produtores') }}" role="search">
       <div class="campo">
         <label class="campo__rotulo" for="q">Buscar</label>
         <input class="campo__entrada" id="q" name="q" type="search" value="{{ termo }}" placeholder="Nome ou produto, ex.: queijo">
@@ -53,7 +53,7 @@
   </p>
 
   {% if produtores %}
-    <ul class="cards">{% for p in produtores %}{{ card_produtor(p, categorias_por_produtor.get(p.usuario_id, [])) }}{% endfor %}</ul>
+    <ul class="cards">{% for p in produtores %}{{ card_produtor(p, categorias_por_produtor.get(p.usuario_id, []), produtos_por_produtor.get(p.usuario_id, 0)) }}{% endfor %}</ul>
   {% else %}
     <div class="vazio-bloco">
       <p>{% if filtros_ativos %}Nenhum produtor com esses filtros. Tente outra busca ou limpe os filtros.{% else %}Ainda não há produtores com vitrine.{% endif %}</p>

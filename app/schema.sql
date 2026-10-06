@@ -10,9 +10,9 @@ DROP TABLE IF EXISTS mensagem;
 DROP TABLE IF EXISTS proposta;
 DROP TABLE IF EXISTS encomenda_atributo;
 DROP TABLE IF EXISTS encomenda;
-DROP TABLE IF EXISTS anuncio_atributo;
-DROP TABLE IF EXISTS foto_anuncio;
-DROP TABLE IF EXISTS anuncio;
+DROP TABLE IF EXISTS produto_atributo;
+DROP TABLE IF EXISTS foto_produto;
+DROP TABLE IF EXISTS produto;
 DROP TABLE IF EXISTS comercio_interesse;
 DROP TABLE IF EXISTS perfil_comercio;
 DROP TABLE IF EXISTS perfil_produtor;
@@ -76,7 +76,7 @@ CREATE TABLE unidade_medida (
     nome  TEXT NOT NULL
 ) STRICT;
 
--- Perfil de produtor: a vitrine pública de quem produz (exigido para anunciar).
+-- Perfil de produtor: a vitrine pública de quem produz (exigido para cadastrar produtos).
 CREATE TABLE perfil_produtor (
     usuario_id        INTEGER PRIMARY KEY REFERENCES usuario(id),
     nome_vitrine      TEXT    NOT NULL,
@@ -127,35 +127,50 @@ CREATE TABLE comercio_interesse (
     PRIMARY KEY (usuario_id, categoria_id)
 ) STRICT;
 
-CREATE TABLE anuncio (
-    id                    INTEGER PRIMARY KEY,
-    vendedor_id           INTEGER NOT NULL REFERENCES usuario(id),
-    categoria_id          INTEGER NOT NULL REFERENCES categoria(id),
-    titulo                TEXT    NOT NULL,
-    titulo_busca          TEXT    NOT NULL,
-    descricao             TEXT    NOT NULL DEFAULT '',
-    preco_centavos        INTEGER CHECK (preco_centavos IS NULL OR preco_centavos > 0),
-    unidade_id            INTEGER NOT NULL REFERENCES unidade_medida(id),
-    quantidade_disponivel REAL    CHECK (quantidade_disponivel IS NULL OR quantidade_disponivel > 0),
-    municipio_id          INTEGER NOT NULL REFERENCES municipio(codigo_ibge),
-    status                TEXT    NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'pausado', 'encerrado', 'oculto')),
-    criado_em             TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    atualizado_em         TEXT
+-- Produto do catálogo do produtor. Pode ser oferecido ao consumidor final, a lojas ou aos dois,
+-- com um preço para cada público (RF28). Preço nulo = "a combinar".
+CREATE TABLE produto (
+    id                        INTEGER PRIMARY KEY,
+    vendedor_id               INTEGER NOT NULL REFERENCES usuario(id),
+    categoria_id              INTEGER NOT NULL REFERENCES categoria(id),
+    titulo                    TEXT    NOT NULL,
+    titulo_busca              TEXT    NOT NULL,
+    descricao                 TEXT    NOT NULL DEFAULT '',
+    unidade_id                INTEGER NOT NULL REFERENCES unidade_medida(id),
+    quantidade_disponivel     REAL    CHECK (quantidade_disponivel IS NULL OR quantidade_disponivel > 0),
+    para_consumidor           INTEGER NOT NULL DEFAULT 1 CHECK (para_consumidor IN (0, 1)),
+    para_lojista              INTEGER NOT NULL DEFAULT 0 CHECK (para_lojista IN (0, 1)),
+    preco_consumidor_centavos INTEGER CHECK (preco_consumidor_centavos IS NULL OR preco_consumidor_centavos > 0),
+    preco_lojista_centavos    INTEGER CHECK (preco_lojista_centavos IS NULL OR preco_lojista_centavos > 0),
+    pedido_minimo_lojista     REAL    CHECK (pedido_minimo_lojista IS NULL OR pedido_minimo_lojista > 0),
+    so_verificados            INTEGER NOT NULL DEFAULT 0 CHECK (so_verificados IN (0, 1)),
+    disponibilidade           TEXT    NOT NULL DEFAULT 'ano_todo'
+                              CHECK (disponibilidade IN ('ano_todo', 'safra', 'sob_encomenda')),
+    meses_safra               INTEGER NOT NULL DEFAULT 0 CHECK (meses_safra BETWEEN 0 AND 4095),  -- bit 0 = janeiro
+    municipio_id              INTEGER NOT NULL REFERENCES municipio(codigo_ibge),
+    status                    TEXT    NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'pausado', 'encerrado', 'oculto')),
+    criado_em                 TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em             TEXT,
+    CHECK (para_consumidor + para_lojista >= 1),
+    CHECK (para_consumidor = 1 OR preco_consumidor_centavos IS NULL),
+    CHECK (para_lojista = 1 OR (preco_lojista_centavos IS NULL AND pedido_minimo_lojista IS NULL AND so_verificados = 0)),
+    CHECK (disponibilidade = 'safra' OR meses_safra = 0),
+    CHECK (disponibilidade <> 'safra' OR meses_safra > 0)
 ) STRICT;
 
-CREATE TABLE foto_anuncio (
+CREATE TABLE foto_produto (
     id                INTEGER PRIMARY KEY,
-    anuncio_id        INTEGER NOT NULL REFERENCES anuncio(id),
+    produto_id        INTEGER NOT NULL REFERENCES produto(id),
     arquivo           TEXT    NOT NULL UNIQUE,
     texto_alternativo TEXT    NOT NULL DEFAULT '',
     ordem             INTEGER NOT NULL DEFAULT 0
 ) STRICT;
 
-CREATE TABLE anuncio_atributo (
-    anuncio_id  INTEGER NOT NULL REFERENCES anuncio(id),
+CREATE TABLE produto_atributo (
+    produto_id  INTEGER NOT NULL REFERENCES produto(id),
     atributo_id INTEGER NOT NULL REFERENCES atributo_categoria(id),
     valor       TEXT    NOT NULL,
-    PRIMARY KEY (anuncio_id, atributo_id)
+    PRIMARY KEY (produto_id, atributo_id)
 ) STRICT;
 
 CREATE TABLE encomenda (
@@ -185,11 +200,13 @@ CREATE TABLE encomenda_atributo (
 ) STRICT;
 
 -- Uma proposta é uma negociação entre comprador e vendedor.
--- Origem: uma encomenda (autor = vendedor) OU um anúncio (autor = comprador).
+-- Origem: uma encomenda (autor = vendedor) OU um produto (autor = comprador).
+-- Em produto, o canal diz se a compra é como consumidor final ou como loja (RF31).
 CREATE TABLE proposta (
     id                      INTEGER PRIMARY KEY,
     encomenda_id            INTEGER REFERENCES encomenda(id),
-    anuncio_id              INTEGER REFERENCES anuncio(id),
+    produto_id              INTEGER REFERENCES produto(id),
+    canal                   TEXT    CHECK (canal IS NULL OR canal IN ('consumidor', 'lojista')),
     comprador_id            INTEGER NOT NULL REFERENCES usuario(id),
     vendedor_id             INTEGER NOT NULL REFERENCES usuario(id),
     autor_id                INTEGER NOT NULL REFERENCES usuario(id),
@@ -205,7 +222,8 @@ CREATE TABLE proposta (
                                               'nao_selecionada', 'concluida', 'cancelada')),
     criado_em               TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     respondida_em           TEXT,
-    CHECK ((encomenda_id IS NULL) <> (anuncio_id IS NULL)),
+    CHECK ((encomenda_id IS NULL) <> (produto_id IS NULL)),
+    CHECK ((produto_id IS NULL) = (canal IS NULL)),
     CHECK (comprador_id <> vendedor_id),
     CHECK (autor_id IN (comprador_id, vendedor_id))
 ) STRICT;
@@ -233,7 +251,7 @@ CREATE TABLE notificacao (
 CREATE TABLE denuncia (
     id             INTEGER PRIMARY KEY,
     denunciante_id INTEGER NOT NULL REFERENCES usuario(id),
-    alvo_tipo      TEXT    NOT NULL CHECK (alvo_tipo IN ('anuncio', 'encomenda', 'proposta', 'mensagem', 'usuario')),
+    alvo_tipo      TEXT    NOT NULL CHECK (alvo_tipo IN ('produto', 'encomenda', 'proposta', 'mensagem', 'usuario', 'vitrine', 'loja')),
     alvo_id        INTEGER NOT NULL,
     motivo         TEXT    NOT NULL,
     descricao      TEXT    NOT NULL DEFAULT '',
@@ -265,15 +283,16 @@ CREATE UNIQUE INDEX proposta_pendente_unica
     ON proposta (encomenda_id, vendedor_id)
     WHERE status = 'pendente' AND encomenda_id IS NOT NULL;
 
--- No máximo uma proposta pendente por comprador em cada anúncio.
-CREATE UNIQUE INDEX proposta_pendente_anuncio
-    ON proposta (anuncio_id, comprador_id)
-    WHERE status = 'pendente' AND anuncio_id IS NOT NULL;
+-- No máximo uma proposta pendente por comprador em cada produto.
+CREATE UNIQUE INDEX proposta_pendente_produto
+    ON proposta (produto_id, comprador_id)
+    WHERE status = 'pendente' AND produto_id IS NOT NULL;
 
-CREATE INDEX idx_anuncio_busca     ON anuncio (status, categoria_id, municipio_id);
+CREATE INDEX idx_produto_busca     ON produto (status, categoria_id, municipio_id);
+CREATE INDEX idx_produto_vendedor  ON produto (vendedor_id, status);
 CREATE INDEX idx_encomenda_busca   ON encomenda (status, categoria_id, municipio_entrega_id, prazo_limite);
 CREATE INDEX idx_proposta_encomenda ON proposta (encomenda_id);
-CREATE INDEX idx_proposta_anuncio  ON proposta (anuncio_id);
+CREATE INDEX idx_proposta_produto  ON proposta (produto_id);
 CREATE INDEX idx_mensagem_proposta ON mensagem (proposta_id, enviada_em);
 CREATE INDEX idx_notificacao_usuario ON notificacao (usuario_id, lida_em);
 CREATE INDEX idx_municipio_uf      ON municipio (uf, nome);

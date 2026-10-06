@@ -24,7 +24,7 @@ def verificar_comercio_command(usuario_id, remover):
 @click.command("carregar-demo")
 @with_appcontext
 def carregar_demo_command():
-    """Cria contas, vitrines, lojas e anúncios fictícios para demonstração (só em ambiente local)."""
+    """Cria contas, vitrines, lojas e produtos fictícios para demonstração (só em ambiente local)."""
     from .demo import DemoJaCarregada, carregar_demo
     try:
         resumo = carregar_demo(get_db())

@@ -67,7 +67,7 @@ class EncomendaForm(Formulario):
 
 
 class PropostaForm(Formulario):
-    """Usado nos dois fluxos: vendedor respondendo encomenda e comprador fazendo oferta em anúncio."""
+    """Usado nos dois fluxos: produtor respondendo encomenda e comprador fazendo oferta num produto."""
 
     preco = CampoReais("Preço", filters=[texto_limpo], validators=[DataRequired("Informe o preço.")])
     quantidade = CampoQuantidade(

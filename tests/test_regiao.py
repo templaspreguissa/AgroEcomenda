@@ -1,6 +1,9 @@
 """Busca por região: município, região imediata do IBGE e UF (RF30)."""
+from datetime import date, timedelta
+
 import pytest
 
+from app import servicos
 from app.db import get_db, salvar_municipios
 
 from .conftest import (
@@ -83,3 +86,37 @@ def test_recarregar_sem_regiao_nao_apaga_a_regiao(app):
         salvar_municipios("MG", [(UBERABA, "Uberaba")])
         regiao = get_db().execute("SELECT regiao_imediata_id FROM municipio WHERE codigo_ibge = ?", (UBERABA,)).fetchone()
         assert regiao[0] == 310055
+
+
+def test_produtos_mais_perto_primeiro_por_padrao(app, client):
+    for nome, municipio in [("Alface de Goiânia", GOIANIA), ("Alface de BH", BELO_HORIZONTE),
+                            ("Alface de Sacramento", SACRAMENTO), ("Alface de Uberaba", UBERABA)]:
+        usuario = criar_usuario(app, nome, f"p{municipio}@exemplo.com")
+        criar_produtor(app, usuario, nome, municipio_id=municipio)
+        with app.app_context():
+            servicos.criar_produto(get_db(), usuario, {
+                "titulo": nome, "categoria_id": 12, "descricao": "", "unidade_id": 12, "quantidade_disponivel": None,
+                "municipio_id": municipio, "para_consumidor": True, "preco_consumidor_centavos": 300,
+                "para_lojista": False, "preco_lojista_centavos": None, "pedido_minimo_lojista": None,
+                "so_verificados": False, "disponibilidade": "ano_todo", "meses_safra": 0,
+            }, {}, [])
+    nomes = ["Alface de Uberaba", "Alface de Sacramento", "Alface de BH", "Alface de Goiânia"]
+    html = client.get("/produtos?perto=Uberaba/MG").get_data(as_text=True)
+    assert ordem(html, nomes) == nomes
+    so_regiao = client.get("/produtos?regiao=1").get_data(as_text=True)
+    assert "Alface de Sacramento" in so_regiao and "Alface de BH" not in so_regiao
+
+
+def test_encomendas_da_minha_regiao(app, client):
+    comprador = criar_usuario(app, "Mercado", "mercado@exemplo.com")
+    with app.app_context():
+        for titulo, municipio in [("Tomate para Sacramento", SACRAMENTO), ("Tomate para Goiânia", GOIANIA)]:
+            servicos.criar_encomenda(get_db(), comprador, {
+                "titulo": titulo, "categoria_id": 12, "descricao": "", "quantidade": 100, "unidade_id": 1,
+                "municipio_id": municipio, "prazo_limite": date.today() + timedelta(days=10),
+                "transporte": "a_combinar", "condicoes_pagamento": "",
+            })
+    perto = client.get("/encomendas?perto=Uberaba/MG&ordem=perto").get_data(as_text=True)
+    assert perto.index("Tomate para Sacramento") < perto.index("Tomate para Goiânia")
+    so_regiao = client.get("/encomendas?regiao=1").get_data(as_text=True)
+    assert "Tomate para Sacramento" in so_regiao and "Tomate para Goiânia" not in so_regiao

@@ -31,8 +31,8 @@ def create_app(test_config=None):
         PERMANENT_SESSION_LIFETIME=timedelta(days=7),
         MAX_CONTENT_LENGTH=25 * 1024 * 1024,  # até 5 fotos de celular por envio
         FOTO_TAMANHO_MAXIMO=8 * 1024 * 1024,
-        FOTOS_POR_ANUNCIO=5,
-        TERMOS_VERSAO="2026-10-v0.2",
+        FOTOS_POR_PRODUTO=5,
+        TERMOS_VERSAO="2026-10-v0.3",
         REPOSITORIO_URL="https://github.com/templaspreguissa/AgroEcomenda",
         SENHA_MINIMA=15,
         LOGIN_MAX_FALHAS=5,
@@ -72,14 +72,17 @@ def create_app(test_config=None):
     from .util import registrar_filtros
     registrar_filtros(app)
 
-    from .anuncios import bp as anuncios_bp
+    from . import visibilidade
+    visibilidade.registrar(app)
+
     from .auth import bp as auth_bp
     from .encomendas import bp as encomendas_bp
     from .main import bp as main_bp
     from .perfis import bp as perfis_bp
+    from .produtos import bp as produtos_bp
     app.register_blueprint(auth_bp)
     app.register_blueprint(perfis_bp)
-    app.register_blueprint(anuncios_bp)
+    app.register_blueprint(produtos_bp)
     app.register_blueprint(encomendas_bp)
     app.register_blueprint(main_bp)
 

@@ -20,7 +20,7 @@
         <label class="campo__rotulo" for="foto">Foto ou logotipo (opcional)</label>
         <p class="campo__dica" id="foto-dica">JPG, PNG ou WebP. A localização da foto é apagada antes de salvar.</p>
         {% if perfil and perfil.foto %}
-          <img class="perfil-foto perfil-foto--previa" src="{{ url_for('anuncios.foto', nome=perfil.foto) }}" alt="Foto atual da vitrine" width="120" height="120">
+          <img class="perfil-foto perfil-foto--previa" src="{{ url_for('produtos.foto', nome=perfil.foto) }}" alt="Foto atual da vitrine" width="120" height="120">
           <label class="opcao"><input type="checkbox" name="remover_foto" value="1"> <span>Remover a foto atual</span></label>
         {% endif %}
         <input class="campo__entrada" id="foto" name="foto" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="foto-dica{% if erro_foto %} foto-erro{% endif %}">

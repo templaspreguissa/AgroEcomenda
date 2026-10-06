@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block titulo %}AgroEncomenda{% endblock %} · AgroEncomenda</title>
-  <meta name="description" content="Aproxima quem produz no campo de comércios e consumidores da região: vitrines de produtores, lojas, anúncios e encomendas.">
+  <meta name="description" content="Aproxima quem produz no campo de comércios e consumidores da região: vitrines de produtores, lojas, produtos e encomendas.">
   <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
   <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
@@ -33,16 +33,29 @@
     </div>
     <nav class="subnav" aria-label="Seções">
       <div class="subnav__interno">
-        <a class="subnav__link" href="{{ url_for('anuncios.lista') }}"{% if request.endpoint == 'anuncios.lista' %} aria-current="page"{% endif %}>Anúncios</a>
+        <a class="subnav__link" href="{{ url_for('produtos.lista') }}"{% if request.endpoint == 'produtos.lista' %} aria-current="page"{% endif %}>Produtos</a>
         <a class="subnav__link" href="{{ url_for('perfis.produtores') }}"{% if request.endpoint == 'perfis.produtores' %} aria-current="page"{% endif %}>Produtores</a>
         {% if g.usuario and (g.usuario.tem_produtor or g.usuario.papel == 'admin') %}
           <a class="subnav__link" href="{{ url_for('perfis.comercios') }}"{% if request.endpoint == 'perfis.comercios' %} aria-current="page"{% endif %}>Comércios</a>
         {% endif %}
         <a class="subnav__link" href="{{ url_for('encomendas.lista') }}"{% if request.endpoint == 'encomendas.lista' %} aria-current="page"{% endif %}>Encomendas</a>
-        <a class="subnav__link subnav__link--acao" href="{{ url_for('anuncios.novo') }}"{% if request.endpoint == 'anuncios.novo' %} aria-current="page"{% endif %}>Anunciar</a>
+        <a class="subnav__link subnav__link--acao" href="{{ url_for('produtos.novo') }}"{% if request.endpoint == 'produtos.novo' %} aria-current="page"{% endif %}>Cadastrar produto</a>
         <a class="subnav__link subnav__link--acao" href="{{ url_for('encomendas.nova') }}"{% if request.endpoint == 'encomendas.nova' %} aria-current="page"{% endif %}>Encomendar</a>
       </div>
     </nav>
+    {% if g.usuario and g.usuario.tem_comercio %}
+      <div class="modo-acesso">
+        <div class="modo-acesso__interno">
+          <span>Preços que você vê: <strong>{{ 'para lojas' if modo_acesso == 'loja' else 'de consumidor' }}</strong></span>
+          <form method="post" action="{{ url_for('perfis.ver_como') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="voltar" value="{{ request.full_path }}">
+            <input type="hidden" name="modo" value="{{ 'consumidor' if modo_acesso == 'loja' else 'loja' }}">
+            <button class="modo-acesso__botao" type="submit">{{ 'Ver como consumidor' if modo_acesso == 'loja' else 'Ver como loja' }}</button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
   </header>
 
   <main id="conteudo" class="conteudo" tabindex="-1">

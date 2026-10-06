@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import card_anuncio %}
+{% from "_macros.html" import card_produto %}
 {% block titulo %}Do produtor para o comércio e para a sua mesa{% endblock %}
 {% block conteudo %}
 
@@ -22,17 +22,17 @@
         <span class="escolha__texto">Veja quem produz perto de você, o que vende e onde encontrar.</span>
       </a>
     </div>
-    <p class="destaque__links">Ou veja os <a href="{{ url_for('anuncios.lista') }}">anúncios</a> e as <a href="{{ url_for('encomendas.lista') }}">encomendas abertas</a>.</p>
+    <p class="destaque__links">Ou veja os <a href="{{ url_for('produtos.lista') }}">produtos</a> e as <a href="{{ url_for('encomendas.lista') }}">encomendas abertas</a>.</p>
   </div>
 </section>
 
-{% if anuncios_recentes %}
-<section class="secao" aria-labelledby="anuncios-recentes">
+{% if produtos_recentes %}
+<section class="secao" aria-labelledby="produtos-recentes">
   <div class="cabecalho-secao">
-    <h2 id="anuncios-recentes">Anúncios recentes</h2>
-    <a href="{{ url_for('anuncios.lista') }}">Ver todos</a>
+    <h2 id="produtos-recentes">{{ 'Produtos para lojas' if modo_acesso == 'loja' else 'Produtos recentes' }}</h2>
+    <a href="{{ url_for('produtos.lista') }}">Ver todos</a>
   </div>
-  <ul class="cards">{% for a in anuncios_recentes %}{{ card_anuncio(a) }}{% endfor %}</ul>
+  <ul class="cards">{% for p in produtos_recentes %}{{ card_produto(p) }}{% endfor %}</ul>
 </section>
 {% endif %}
 
@@ -42,7 +42,7 @@
     <li class="passo">
       <span class="passo__numero" aria-hidden="true">1</span>
       <h3 class="passo__titulo">O produtor monta a vitrine</h3>
-      <p>Diz onde fica, como vende (retirada, entrega, feira) e anuncia o que produz, com fotos e preço.</p>
+      <p>Diz onde fica, como vende (retirada, entrega, feira) e cadastra o que produz, com fotos, preço para o consumidor e preço para lojas.</p>
     </li>
     <li class="passo">
       <span class="passo__numero" aria-hidden="true">2</span>
@@ -77,7 +77,7 @@
     <li>O AgroEncomenda não vende nada e não fica com parte do pagamento: produtor e comprador negociam direto.</li>
     <li>Lojas se cadastram com CNPJ, e os dados delas aparecem só para produtores.</li>
     <li>Até a proposta ser aceita, cada lado vê só o primeiro nome e o município do outro.</li>
-    <li>Em produtos de origem animal, o produtor informa o serviço de inspeção, e o anúncio mostra até onde ele pode ser vendido.</li>
+    <li>Em produtos de origem animal, o produtor informa o serviço de inspeção, e a página do produto mostra até onde ele pode ser vendido.</li>
   </ul>
 </section>
 {% endblock %}

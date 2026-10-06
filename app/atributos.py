@@ -58,11 +58,3 @@ def ler_atributos(db, categoria_id, formulario):
         valores[atributo["id"]] = texto
     return valores, erros
 
-
-def valores_salvos(db, anuncio_id):
-    return db.execute(
-        """SELECT a.id, a.nome, v.valor FROM anuncio_atributo v
-             JOIN atributo_categoria a ON a.id = v.atributo_id
-            WHERE v.anuncio_id = ? ORDER BY a.id""",
-        (anuncio_id,),
-    ).fetchall()

@@ -12,7 +12,7 @@
 
   <details class="filtros"{% if filtros_ativos or erro_perto or not referencia %} open{% endif %}>
     <summary class="filtros__resumo">Filtrar{% if filtros_ativos %} (filtros ativos){% endif %}</summary>
-    <form class="filtros__form filtros__form--anuncios" method="get" action="{{ url_for('perfis.comercios') }}" role="search">
+    <form class="filtros__form filtros__form--largo" method="get" action="{{ url_for('perfis.comercios') }}" role="search">
       <div class="campo">
         <label class="campo__rotulo" for="q">Buscar pelo nome</label>
         <input class="campo__entrada" id="q" name="q" type="search" value="{{ termo }}">

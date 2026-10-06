@@ -1,9 +1,9 @@
 """Formulários de cadastro e login (Flask-WTF já inclui o token CSRF)."""
 from flask import current_app
-from wtforms import BooleanField, EmailField, PasswordField, RadioField, SelectMultipleField, StringField, widgets
+from wtforms import BooleanField, EmailField, PasswordField, RadioField, StringField
 from wtforms.validators import DataRequired, EqualTo, InputRequired, Length, Regexp, ValidationError
 
-from ..formularios import Formulario
+from ..formularios import CaixasDeSelecao, Formulario
 
 EMAIL_RE = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
 
@@ -28,12 +28,6 @@ USOS = {
     "comercio": "Comprar para o meu comércio (mercado, restaurante, distribuidor...)",
     "consumo": "Comprar direto do produtor para consumo",
 }
-
-
-class CaixasDeSelecao(SelectMultipleField):
-    """Várias opções como caixas de seleção (checkbox), em vez de <select multiple>."""
-    widget = widgets.ListWidget(prefix_label=False)
-    option_widget = widgets.CheckboxInput()
 
 
 class CadastroForm(Formulario):
