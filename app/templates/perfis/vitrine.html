@@ -40,8 +40,9 @@
       <h2 id="contato" class="cartao__titulo">Contato</h2>
       {% if perfil.telefone_publico %}
         {{ contato_publico(perfil.telefone_publico, perfil.telefone_whatsapp) }}
-      {% else %}
-        <p class="vazio">Para negociar, faça uma proposta em um dos produtos abaixo.</p>
+      {% endif %}
+      {% if not sou_dono %}
+        <a class="botao botao--secundario" href="{{ url_for('comunicacao.nova', sobre='vitrine', id=perfil.usuario_id) if g.usuario else url_for('auth.entrar', next=url_for('comunicacao.nova', sobre='vitrine', id=perfil.usuario_id)) }}">Mandar mensagem</a>
       {% endif %}
       <p class="card__suave">Na plataforma desde {{ perfil.desde | data_br }}</p>
     </section>

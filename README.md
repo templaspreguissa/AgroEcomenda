@@ -10,7 +10,7 @@ Uma mesma conta pode ter até três papéis:
 
 A plataforma **não vende produtos, não intermedia pagamentos e não faz entregas**. Ela ajuda o produtor a vender mais, os comércios a conhecerem as opções da região e o consumidor a chegar direto a quem produz. A visão completa, as regras de negócio e as fontes estão em [docs/visao-produtor-comercio-consumidor.md](docs/visao-produtor-comercio-consumidor.md).
 
-> **Status:** Iteração 4 concluída: cada **produto** pode ser vendido ao consumidor final, a lojas ou aos dois, com **preço de cada público**, **pedido mínimo** para lojas e opção "preço só para lojas verificadas". O preço mostrado depende de **quem acessa**, e quem não pode ver um preço não o recebe nem pelos filtros. Também entraram a **safra** (meses do ano), a **busca por região** em produtos e encomendas e a regra de **inspeção** que limita para quem cada produto pode ser vendido. Antes disso: vitrines, lojas com CNPJ, diretórios por região e encomendas com propostas. Próximo passo: conversas e notificações ([roadmap](#roadmap)).
+> **Status:** Iteração 5 concluída: **conversas** entre produtor, loja e consumidor (sobre um produto, uma vitrine, uma loja, uma encomenda ou uma proposta), tela de **avisos** com contador no topo e **alertas de oportunidade na região** (produto novo para lojas e encomenda nova para produtores). Iteração 4: cada **produto** pode ser vendido ao consumidor final, a lojas ou aos dois, com **preço de cada público**, **pedido mínimo** para lojas e opção "preço só para lojas verificadas". O preço mostrado depende de **quem acessa**, e quem não pode ver um preço não o recebe nem pelos filtros. Também entraram a **safra** (meses do ano), a **busca por região** em produtos e encomendas e a regra de **inspeção** que limita para quem cada produto pode ser vendido. Antes disso: vitrines, lojas com CNPJ, diretórios por região e encomendas com propostas. Próximo passo: contratos de fornecimento ([roadmap](#roadmap)).
 
 ## Como funciona: produtores, comércios e consumidores
 
@@ -38,6 +38,14 @@ A plataforma **não vende produtos, não intermedia pagamentos e não faz entreg
 5. O consumidor **faz um pedido** e a loja **pede uma cotação**, com preço, quantidade, data de entrega e transporte. O sistema decide sozinho se a compra é como consumidor ou como loja, e a cotação de loja respeita o pedido mínimo. O produtor vê o nome da loja que pediu a cotação.
 6. O produtor aceita ou recusa cada proposta. O produto continua ativo depois de um aceite, porque ele pode vender para mais de um comprador. Para parar de receber propostas, ele pode **pausar** ou **encerrar** o produto. Se deixar de vender para um público, as propostas pendentes daquele público são encerradas com aviso.
 7. A regra de privacidade é a mesma das encomendas: nome completo e e-mail só aparecem para as duas partes depois do aceite.
+
+## Como funciona a comunicação
+
+1. **Mensagens:** "Perguntar ao produtor" (na página do produto), "Mandar mensagem" (na vitrine), "Apresentar meus produtos" (na página da loja, só para produtores), "Tirar dúvida com o comprador" (na encomenda) e "Mensagem" em cada proposta. Cada assunto tem uma conversa por par de pessoas: voltar ao mesmo assunto continua a conversa.
+2. **Quem fala com quem sai do assunto**, consultado no servidor. Só os dois participantes leem a conversa; para qualquer outra pessoa ela não existe (404). Cada lado vê o primeiro nome e os nomes de vitrine ou loja do outro, nunca o e-mail.
+3. **Contra spam:** até 20 conversas novas por dia e 60 mensagens por hora por pessoa (ajustáveis em `CONVERSAS_NOVAS_POR_DIA` e `MENSAGENS_POR_HORA`).
+4. **Avisos:** proposta recebida, aceita ou recusada, mensagem nova, encomenda expirada e oportunidades perto de você. O topo mostra quantos avisos e mensagens estão sem ler. Abrir um aviso marca como lido e leva à página certa, sempre dentro do site.
+5. **Alertas da região:** quando um produtor cadastra um produto vendido a lojas, as lojas da mesma região imediata que compram aquela categoria recebem um aviso. Quando uma loja publica uma encomenda, os produtores da mesma região que vendem aquela categoria também recebem.
 
 ## Como funciona o fluxo de demanda
 
@@ -140,6 +148,7 @@ app/
 ├── demo.py            # dados de demonstração fictícios
 ├── auth/              # cadastro (com "como vai usar"), login, logout, limite de tentativas, decoradores
 ├── perfis/            # vitrine do produtor, loja (comércio), diretórios por região, dados da conta
+├── comunicacao/       # mensagens (conversas) e avisos
 ├── produtos/          # produtos e propostas de compra: lista, cadastrar, editar, pausar, encerrar, fotos
 ├── encomendas/        # encomendas e propostas: lista, publicar, editar, cancelar, propor, aceitar, recusar
 ├── main/              # página inicial, termos, privacidade, painel
@@ -182,7 +191,8 @@ Durante o trabalho acadêmico, **use apenas dados fictícios**.
 | RF09 | Aceitar ou recusar proposta | Feito (com confirmação antes da ação) |
 | RF10 | Status da negociação | Feito (estados separados para encomenda e proposta) |
 | RF11 | Painel do usuário | Feito (vitrine, loja, produtos com os dois preços, encomendas e propostas enviadas) |
-| RF13 | Notificação de proposta, aceite e recusa | Notificações já são registradas. A tela de notificações vem na Iteração 5 |
+| RF12 | Mensagens entre as partes | Feito (conversas por assunto, só entre os participantes) |
+| RF13 | Notificação de proposta, aceite e recusa | Feito (tela de avisos, contador no topo, marcar como lidos) |
 | RF16 | Excluir ou desativar produtos e encomendas | Feito (produto: editar, pausar, reativar, encerrar; encomenda: editar sem propostas, cancelar) |
 | RF17 | Encerrar encomendas vencidas | Feito (automático) |
 | RF18 | Proposta de compra sobre produto | Feito |
@@ -196,6 +206,8 @@ Durante o trabalho acadêmico, **use apenas dados fictícios**.
 | RF30 | Busca por região (região imediata do IBGE) | Feito em produtos, encomendas, produtores e comércios |
 | RF31 | Pedido do consumidor e cotação da loja | Feito (canal decidido no servidor, pedido mínimo) |
 | RF32 | Safra e "o que tem neste mês" | Feito |
+| RF33 | Conversas entre produtor, comércio e consumidor | Feito (limites contra spam) |
+| RF37 | Alertas de oportunidade na região | Feito (produto novo para lojas, encomenda nova para produtores) |
 | RF38 | Verificação de comércio | Feito pelo comando `verificar-comercio`. Tela de administração na Iteração 7 |
 | RNF01 | Interface responsiva | Feito para as telas existentes (a tabela de propostas vira cartões no celular) |
 | RNF02 | Senhas com hash adaptativo | Feito |
@@ -210,7 +222,7 @@ Durante o trabalho acadêmico, **use apenas dados fictícios**.
 | 2 — Fluxo de oferta ✔ | Anúncios (hoje produtos) com fotos, campos por categoria, busca e filtros, proposta de compra | RF04–RF06, RF16, RF18 |
 | 3 — Perfis e região ✔ | Vitrine do produtor, loja com CNPJ, diretórios por região imediata, categorias do que se produz, inspeção sanitária, dados de demonstração | RF02 (parte), RF26, RF27, RF30, RF38 (parte) |
 | 4 — Preço por público ✔ | Produto para consumidor, para lojas ou para os dois, com preço de cada um e pedido mínimo; preço mostrado conforme quem acessa; disponibilidade sazonal; busca por região nos anúncios | RF28–RF32 |
-| 5 — Comunicação | Conversas entre produtor, loja e consumidor; tela de notificações; alertas de produto novo na região | RF12–RF14, RF33, RF37 |
+| 5 — Comunicação ✔ | Conversas entre produtor, loja e consumidor; tela de notificações; alertas de produto novo na região | RF12–RF14, RF33, RF37 |
 | 6 — Contratos | Contrato de fornecimento com versões, aceite registrado, impressão e "onde comprar" | RF34–RF36 |
 | 7 — Confiança e fechamento | Administração mínima (verificar lojas, ocultar conteúdo), exclusão de conta, recuperação de acesso, acessibilidade e roteiro de demonstração | RF02, RF15, RF19–RF21, RF25, RF38 |
 

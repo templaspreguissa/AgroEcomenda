@@ -1,7 +1,7 @@
 """Funções de apoio: busca sem acentos, valores em reais, quantidades, unidades e datas."""
 import re
 import unicodedata
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 # Nome da unidade no singular e no plural, para frases como "30 toneladas" e "R$ 150,00 por tonelada".
@@ -169,6 +169,20 @@ def data_br(texto_ou_data):
     return f"{texto_ou_data.day} {MESES[texto_ou_data.month - 1]} {texto_ou_data.year}"
 
 
+# Horário de Brasília. O Brasil não tem horário de verão desde 2019 (Decreto nº 9.772/2019), então o
+# deslocamento fixo de -3 h basta e evita depender da base de fusos horários, que o Windows não traz.
+HORARIO_DE_BRASILIA = timezone(timedelta(hours=-3))
+
+
+def data_hora_br(texto_utc):
+    """'2026-10-06 17:32:05' (UTC, como o SQLite grava) -> '6 out. 2026, 14:32' (horário de Brasília)."""
+    if not texto_utc:
+        return ""
+    momento = datetime.strptime(texto_utc[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+    local = momento.astimezone(HORARIO_DE_BRASILIA)
+    return f"{data_br(local.date())}, {local:%H:%M}"
+
+
 def prazo_relativo(texto_data):
     dias = (date.fromisoformat(texto_data[:10]) - hoje()).days
     if dias < 0:
@@ -240,6 +254,7 @@ def registrar_filtros(app):
     app.add_template_filter(formatar_reais, "reais")
     app.add_template_filter(formatar_numero, "numero")
     app.add_template_filter(data_br, "data_br")
+    app.add_template_filter(data_hora_br, "data_hora_br")
     app.add_template_filter(prazo_relativo, "prazo_relativo")
     app.add_template_filter(primeiro_nome, "primeiro_nome")
     app.add_template_filter(por_unidade, "por_unidade")

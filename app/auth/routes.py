@@ -40,7 +40,11 @@ def carregar_usuario():
                   COALESCE(u.municipio_id, pp.municipio_id, pc.municipio_id) AS municipio_id,
                   pp.usuario_id IS NOT NULL AS tem_produtor,
                   pc.usuario_id IS NOT NULL AS tem_comercio,
-                  pc.verificado_em IS NOT NULL AS comercio_verificado
+                  pc.verificado_em IS NOT NULL AS comercio_verificado,
+                  (SELECT COUNT(*) FROM notificacao n WHERE n.usuario_id = u.id AND n.lida_em IS NULL) AS avisos_nao_lidos,
+                  (SELECT COUNT(*) FROM mensagem m JOIN conversa c ON c.id = m.conversa_id
+                    WHERE u.id IN (c.usuario_a_id, c.usuario_b_id) AND m.remetente_id <> u.id
+                      AND m.lida_em IS NULL) AS mensagens_nao_lidas
              FROM usuario u
              LEFT JOIN perfil_produtor pp ON pp.usuario_id = u.id
              LEFT JOIN perfil_comercio pc ON pc.usuario_id = u.id

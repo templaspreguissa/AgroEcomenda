@@ -20,7 +20,17 @@
       </a>
       <nav class="menu" aria-label="Menu principal">
         {% if g.usuario %}
-          <a class="menu__link" href="{{ url_for('main.painel') }}">Meu painel</a>
+          {% set avisos_novos = g.usuario.avisos_nao_lidos %}
+          {% set mensagens_novas = g.usuario.mensagens_nao_lidas %}
+          <a class="menu__link menu__icone" href="{{ url_for('comunicacao.avisos') }}"{% if request.endpoint == 'comunicacao.avisos' %} aria-current="page"{% endif %}>
+            <span aria-hidden="true">🔔</span><span class="menu__texto">Avisos</span>
+            {% if avisos_novos %}<span class="contador-bolha">{{ avisos_novos }}<span class="sr"> novo{{ '' if avisos_novos == 1 else 's' }}</span></span>{% endif %}
+          </a>
+          <a class="menu__link menu__icone" href="{{ url_for('comunicacao.caixa') }}"{% if request.endpoint == 'comunicacao.caixa' %} aria-current="page"{% endif %}>
+            <span aria-hidden="true">💬</span><span class="menu__texto">Mensagens</span>
+            {% if mensagens_novas %}<span class="contador-bolha">{{ mensagens_novas }}<span class="sr"> não lida{{ '' if mensagens_novas == 1 else 's' }}</span></span>{% endif %}
+          </a>
+          <a class="menu__link" href="{{ url_for('main.painel') }}"><span class="menu__texto">Meu painel</span><span class="menu__texto-curto" aria-hidden="true">Painel</span></a>
           <form class="menu__form" method="post" action="{{ url_for('auth.sair') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="menu__link menu__botao" type="submit">Sair</button>

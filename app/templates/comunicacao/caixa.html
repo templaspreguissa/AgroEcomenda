@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block titulo %}Mensagens{% endblock %}
+{% block conteudo %}
+<section class="secao secao--media">
+  <h1>Mensagens</h1>
+  <p class="texto-apoio">Conversas com produtores, lojas e compradores. Só vocês dois veem cada conversa.</p>
+
+  {% if conversas %}
+    <ul class="conversas">
+      {% for c in conversas %}
+        <li class="conversa-item{% if c.nao_lidas %} conversa-item--nova{% endif %}">
+          <a href="{{ url_for('comunicacao.conversa', conversa_id=c.id) }}">
+            <span class="conversa-item__quem">{{ nome_publico(c.outro_nome, c.outro_vitrine, c.outro_loja) }}</span>
+            <span class="conversa-item__assunto">{{ assuntos[c.id] }}</span>
+            <span class="conversa-item__ultima">{% if c.ultima_de == g.usuario.id %}Você: {% endif %}{{ c.ultima | truncate(90) }}</span>
+          </a>
+          <span class="conversa-item__quando card__suave">{{ c.ultima_mensagem_em | data_hora_br }}</span>
+          {% if c.nao_lidas %}<span class="contador-bolha">{{ c.nao_lidas }}<span class="sr"> mensage{{ 'm' if c.nao_lidas == 1 else 'ns' }} não lida{{ '' if c.nao_lidas == 1 else 's' }}</span></span>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="vazio-bloco">
+      <p>Você ainda não tem conversas.</p>
+      <p>Para falar com alguém, use “Mandar mensagem” na página de um produto, de uma vitrine, de uma encomenda ou de uma proposta.</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

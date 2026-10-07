@@ -144,7 +144,18 @@ def carregar_demo(db):
         "condicoes_pagamento": "Boleto 14 dias",
     })
 
+    # Uma conversa de exemplo: a loja pergunta à produtora sobre a alface.
+    alface = db.execute("SELECT id FROM produto WHERE vendedor_id = ? AND titulo = 'Alface crespa'", (ana,)).fetchone()["id"]
+    loja = {"id": rita, "nome": "Rita Souza", "tem_produtor": False}
+    conversa_id = servicos.conversas.iniciar_conversa(
+        db, "produto", alface, loja, "Bom dia! Vocês conseguem entregar 300 maços por semana em Uberaba, às segundas?"
+    )
+    servicos.conversas.responder(
+        db, servicos.conversas.buscar_conversa(db, conversa_id, ana), ana,
+        "Bom dia, Rita! Conseguimos, sim. Mande o pedido de cotação pelo produto que eu confirmo o preço.",
+    )
+
     return (
         "Dados de demonstração carregados: 3 produtores, 2 comércios (1 verificado), 1 consumidor, "
-        "9 produtos e 1 encomenda. E-mails terminam em .demo@example.com. A senha está em app/demo.py."
+        "9 produtos, 1 encomenda e 1 conversa. E-mails terminam em .demo@example.com. A senha está em app/demo.py."
     )

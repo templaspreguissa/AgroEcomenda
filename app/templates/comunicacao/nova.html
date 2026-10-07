@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "_macros.html" import campo %}
+{% block titulo %}Nova mensagem{% endblock %}
+{% block conteudo %}
+<section class="secao secao--media">
+  <h1>Nova mensagem</h1>
+  <div class="resumo">
+    <p class="resumo__titulo">Para: {{ destinatario }}</p>
+    <p>Sobre: <a href="{{ link }}">{{ titulo }}</a></p>
+  </div>
+
+  <form class="formulario" method="post" action="{{ url_for('comunicacao.nova') }}" novalidate>
+    {{ form.hidden_tag() }}
+    {{ campo(form.texto, dica='Diga o que você procura, a quantidade e quando precisa. Para combinar preço e entrega de forma registrada, use também a proposta.', extras={'rows': 5, 'maxlength': 2000}) }}
+    <button class="botao botao--largo" type="submit">Enviar mensagem</button>
+  </form>
+  {% include "comunicacao/_dicas.html" %}
+  <p><a href="{{ link }}">Voltar sem enviar</a></p>
+</section>
+{% endblock %}

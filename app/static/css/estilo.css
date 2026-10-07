@@ -69,6 +69,11 @@ p { margin: 0 0 1em; }
 
 /* No celular o topo não fica fixo: sobra mais tela para o conteúdo */
 @media (max-width: 47.99rem) {
+  /* No celular, "Avisos" e "Mensagens" viram só ícone com contador, e "Meu painel" vira "Painel".
+     O texto completo continua para leitores de tela (mesma técnica da classe .sr). */
+  .menu .menu__texto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+  .menu .menu__texto-curto { display: inline; }
+  .menu .menu__icone { padding: 0 .4rem; }
   .topo { position: static; }
   [id] { scroll-margin-top: 1rem; }
 }
@@ -337,6 +342,33 @@ textarea.campo__entrada { min-height: 6rem; resize: vertical; }
 .chamada--suave { background: var(--azul-claro); font-weight: 400; }
 .chamada--suave a { font-weight: 700; }
 .dados--compacto div { grid-template-columns: 1fr !important; }
+
+/* ---------- mensagens e avisos ---------- */
+.menu__icone { gap: .3rem; }
+.menu__texto-curto { display: none; }
+.contador-bolha {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 1.4rem; height: 1.4rem; padding: 0 .35rem;
+  border-radius: 999px; background: var(--erro); color: #fff; font-size: .8rem; font-weight: 800; line-height: 1;
+}
+.conversas, .avisos-lista, .mensagens { list-style: none; padding: 0; margin: 0 0 1.5rem; }
+.conversa-item, .aviso-item {
+  display: grid; grid-template-columns: 1fr auto; gap: .15rem .75rem; align-items: start;
+  background: var(--superficie); border: 1px solid var(--borda); border-radius: var(--raio); padding: .75rem 1rem; margin-bottom: .5rem;
+}
+.conversa-item a { display: grid; gap: .1rem; text-decoration: none; color: var(--texto); grid-row: span 2; }
+.conversa-item__quem { font-weight: 800; color: var(--verde-escuro); }
+.conversa-item__assunto { font-size: .9rem; color: var(--azul); }
+.conversa-item__ultima { color: var(--texto-suave); overflow-wrap: anywhere; }
+.conversa-item--nova, .aviso-item--novo { border-left: 5px solid var(--verde); }
+.conversa-item--nova .conversa-item__ultima { color: var(--texto); font-weight: 600; }
+.aviso-item { grid-template-columns: auto 1fr; }
+.aviso-item .card__suave { grid-column: 2; }
+.aviso-item--novo a { font-weight: 700; }
+.mensagem { max-width: 85%; background: var(--superficie); border: 1px solid var(--borda); border-radius: var(--raio); padding: .6rem .9rem; margin-bottom: .6rem; }
+.mensagem--minha { margin-left: auto; background: var(--verde-claro); border-color: var(--verde); }
+.mensagem__quem { margin: 0 0 .2rem; font-weight: 700; font-size: .9rem; }
+.mensagem__texto { margin: 0; }
+.mensagem .card__suave { margin: .2rem 0 0; font-size: .85rem; }
 
 /* Tabela que vira lista de cartões no celular */
 @media (max-width: 47.99rem) {

@@ -34,7 +34,10 @@
     {% if perfil.telefone_publico %}
       {{ contato_publico(perfil.telefone_publico, perfil.telefone_whatsapp) }}
     {% else %}
-      <p class="vazio">Esta loja não publicou telefone.{% if encomendas %} Responda a uma das encomendas abaixo com uma proposta.{% endif %}</p>
+      <p class="vazio">Esta loja não publicou telefone.</p>
+    {% endif %}
+    {% if not sou_dono and g.usuario.tem_produtor %}
+      <a class="botao" href="{{ url_for('comunicacao.nova', sobre='loja', id=perfil.usuario_id) }}">Apresentar meus produtos</a>
     {% endif %}
   </section>
 

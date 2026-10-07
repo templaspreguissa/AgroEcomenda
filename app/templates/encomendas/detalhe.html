@@ -71,8 +71,9 @@
                 <td data-rotulo="Transporte">{{ TRANSPORTE[p.transporte] }}</td>
                 <td data-rotulo="Situação">{{ etiqueta(p.status, STATUS_PROPOSTA) }}{% if p.validade and p.status == 'pendente' %}<br><span class="card__suave">válida até {{ p.validade | data_br }}</span>{% endif %}</td>
                 <td data-rotulo="Ações">
-                  {%- if p.status == 'pendente' and ativa %}
                     <div class="acoes acoes--compactas">
+                      <a class="botao botao--pequeno botao--secundario" href="{{ url_for('comunicacao.nova', sobre='proposta', id=p.id) }}">Mensagem</a>
+                  {%- if p.status == 'pendente' and ativa %}
                       <form method="post" action="{{ url_for('encomendas.aceitar', proposta_id=p.id) }}" data-confirmar="Aceitar esta proposta? A encomenda será concluída e as outras propostas serão encerradas.">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button class="botao botao--pequeno" type="submit">Aceitar</button>
@@ -81,8 +82,8 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button class="botao botao--pequeno botao--secundario" type="submit">Recusar</button>
                       </form>
-                    </div>
                   {% endif -%}
+                    </div>
                 </td>
               </tr>
             {% endfor %}
@@ -107,13 +108,17 @@
             <p><strong>O comprador aceitou sua proposta.</strong></p>
             <p>Contato do comprador: {{ encomenda.comprador_nome }}, <a href="mailto:{{ encomenda.comprador_email }}">{{ encomenda.comprador_email }}</a>. Combinem pagamento e entrega diretamente.</p>
           </div>
-        {% elif p.status == 'pendente' %}
+        {% endif %}
+        {% if p.status in ('pendente', 'aceita') %}
           <div class="acoes">
+            <a class="botao botao--secundario" href="{{ url_for('comunicacao.nova', sobre='proposta', id=p.id) }}">Conversar com o comprador</a>
+            {% if p.status == 'pendente' %}
             <a class="botao botao--secundario" href="{{ url_for('encomendas.proposta', encomenda_id=encomenda.id) }}">Editar proposta</a>
             <form method="post" action="{{ url_for('encomendas.retirar', proposta_id=p.id) }}" data-confirmar="Retirar sua proposta?">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button class="botao botao--perigo" type="submit">Retirar proposta</button>
             </form>
+            {% endif %}
           </div>
         {% endif %}
       </section>
@@ -122,7 +127,10 @@
     {% if pode_propor %}
       <div class="chamada">
         <p>Você tem o que este comprador precisa?</p>
-        <a class="botao" href="{{ url_for('encomendas.proposta', encomenda_id=encomenda.id) }}">Enviar proposta</a>
+        <div class="acoes acoes--compactas">
+          <a class="botao" href="{{ url_for('encomendas.proposta', encomenda_id=encomenda.id) }}">Enviar proposta</a>
+          <a class="botao botao--secundario" href="{{ url_for('comunicacao.nova', sobre='encomenda', id=encomenda.id) }}">Tirar dúvida com o comprador</a>
+        </div>
       </div>
     {% elif not propostas and not ativa %}
       <p class="aviso aviso--info">Esta encomenda não está mais recebendo propostas.</p>

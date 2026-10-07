@@ -9,6 +9,7 @@ Estados (seção 8.1 da pesquisa):
   Proposta:  pendente -> aceita | recusada | retirada | nao_selecionada
 """
 from ..util import agora_utc_texto, hoje, normalizar_busca
+from .alertas import avisar_produtores_da_regiao
 from .comum import SQL_PROPOSTA, RegraNegocio, notificar
 
 STATUS_ENCOMENDA_ATIVA = ("aberta", "em_negociacao")
@@ -153,6 +154,7 @@ def criar_encomenda(db, comprador_id, dados):
             "UPDATE usuario SET municipio_id = ? WHERE id = ? AND municipio_id IS NULL",
             (dados["municipio_id"], comprador_id),
         )
+        avisar_produtores_da_regiao(db, cursor.lastrowid)
     return cursor.lastrowid
 
 

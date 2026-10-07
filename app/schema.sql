@@ -7,6 +7,7 @@ DROP TABLE IF EXISTS acao_moderacao;
 DROP TABLE IF EXISTS denuncia;
 DROP TABLE IF EXISTS notificacao;
 DROP TABLE IF EXISTS mensagem;
+DROP TABLE IF EXISTS conversa;
 DROP TABLE IF EXISTS proposta;
 DROP TABLE IF EXISTS encomenda_atributo;
 DROP TABLE IF EXISTS encomenda;
@@ -228,9 +229,27 @@ CREATE TABLE proposta (
     CHECK (autor_id IN (comprador_id, vendedor_id))
 ) STRICT;
 
+-- Conversa entre duas pessoas sobre um assunto (RF33): um produto, uma vitrine, uma loja,
+-- uma encomenda, uma proposta ou (Iteração 6) um contrato. Uma conversa por assunto e por par.
+-- usuario_a_id < usuario_b_id deixa o par sempre na mesma ordem, para a restrição UNIQUE funcionar.
+CREATE TABLE conversa (
+    id                 INTEGER PRIMARY KEY,
+    contexto_tipo      TEXT    NOT NULL CHECK (contexto_tipo IN ('produto', 'vitrine', 'loja', 'encomenda',
+                                                                  'proposta', 'contrato')),
+    contexto_id        INTEGER NOT NULL,
+    usuario_a_id       INTEGER NOT NULL REFERENCES usuario(id),
+    usuario_b_id       INTEGER NOT NULL REFERENCES usuario(id),
+    iniciada_por       INTEGER NOT NULL REFERENCES usuario(id),
+    criada_em          TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ultima_mensagem_em TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CHECK (usuario_a_id < usuario_b_id),
+    CHECK (iniciada_por IN (usuario_a_id, usuario_b_id)),
+    UNIQUE (contexto_tipo, contexto_id, usuario_a_id, usuario_b_id)
+) STRICT;
+
 CREATE TABLE mensagem (
     id           INTEGER PRIMARY KEY,
-    proposta_id  INTEGER NOT NULL REFERENCES proposta(id),
+    conversa_id  INTEGER NOT NULL REFERENCES conversa(id),
     remetente_id INTEGER NOT NULL REFERENCES usuario(id),
     conteudo     TEXT    NOT NULL CHECK (length(conteudo) BETWEEN 1 AND 2000),
     enviada_em   TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -241,7 +260,8 @@ CREATE TABLE notificacao (
     id         INTEGER PRIMARY KEY,
     usuario_id INTEGER NOT NULL REFERENCES usuario(id),
     tipo       TEXT    NOT NULL CHECK (tipo IN ('nova_proposta', 'proposta_aceita', 'proposta_recusada',
-                                               'nova_mensagem', 'encomenda_expirada', 'conteudo_moderado')),
+                                               'nova_mensagem', 'encomenda_expirada', 'conteudo_moderado',
+                                               'produto_na_regiao', 'encomenda_na_regiao')),
     texto      TEXT    NOT NULL,
     link       TEXT    NOT NULL,
     criada_em  TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -293,7 +313,11 @@ CREATE INDEX idx_produto_vendedor  ON produto (vendedor_id, status);
 CREATE INDEX idx_encomenda_busca   ON encomenda (status, categoria_id, municipio_entrega_id, prazo_limite);
 CREATE INDEX idx_proposta_encomenda ON proposta (encomenda_id);
 CREATE INDEX idx_proposta_produto  ON proposta (produto_id);
-CREATE INDEX idx_mensagem_proposta ON mensagem (proposta_id, enviada_em);
+CREATE INDEX idx_mensagem_conversa ON mensagem (conversa_id, enviada_em);
+CREATE INDEX idx_mensagem_nao_lida ON mensagem (conversa_id, lida_em);
+CREATE INDEX idx_conversa_a        ON conversa (usuario_a_id, ultima_mensagem_em);
+CREATE INDEX idx_conversa_b        ON conversa (usuario_b_id, ultima_mensagem_em);
+CREATE INDEX idx_conversa_iniciada ON conversa (iniciada_por, criada_em);
 CREATE INDEX idx_notificacao_usuario ON notificacao (usuario_id, lida_em);
 CREATE INDEX idx_municipio_uf      ON municipio (uf, nome);
 CREATE INDEX idx_municipio_regiao  ON municipio (regiao_imediata_id);

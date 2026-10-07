@@ -30,7 +30,43 @@ def buscar_proposta(db, proposta_id):
 
 
 def notificar(db, usuario_id, tipo, texto, link):
+    """Grava um aviso para o usuário. `link` é sempre um caminho interno ("/produtos/3")."""
     db.execute(
         "INSERT INTO notificacao (usuario_id, tipo, texto, link) VALUES (?, ?, ?, ?)",
         (usuario_id, tipo, texto, link),
     )
+
+
+# ---------- avisos (RF13) ----------
+
+def avisos_do_usuario(db, usuario_id, limite, deslocamento=0):
+    return db.execute(
+        "SELECT id, tipo, texto, link, criada_em, lida_em FROM notificacao WHERE usuario_id = ? "
+        "ORDER BY lida_em IS NOT NULL, criada_em DESC, id DESC LIMIT ? OFFSET ?",
+        (usuario_id, limite, deslocamento),
+    ).fetchall()
+
+
+def total_de_avisos(db, usuario_id):
+    return db.execute("SELECT COUNT(*) FROM notificacao WHERE usuario_id = ?", (usuario_id,)).fetchone()[0]
+
+
+def abrir_aviso(db, aviso_id, usuario_id):
+    """Marca o aviso como lido e devolve o link dele. None se o aviso não é deste usuário."""
+    aviso = db.execute(
+        "SELECT link FROM notificacao WHERE id = ? AND usuario_id = ?", (aviso_id, usuario_id)
+    ).fetchone()
+    if aviso is None:
+        return None
+    with db:
+        db.execute(
+            "UPDATE notificacao SET lida_em = CURRENT_TIMESTAMP WHERE id = ? AND lida_em IS NULL", (aviso_id,)
+        )
+    return aviso["link"]
+
+
+def marcar_todos_lidos(db, usuario_id):
+    with db:
+        return db.execute(
+            "UPDATE notificacao SET lida_em = CURRENT_TIMESTAMP WHERE usuario_id = ? AND lida_em IS NULL", (usuario_id,)
+        ).rowcount

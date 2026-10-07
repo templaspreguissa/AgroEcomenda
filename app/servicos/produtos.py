@@ -8,6 +8,7 @@ from flask import current_app
 
 from ..inspecao import area_de_venda, motivo_para_nao_vender
 from ..util import agora_utc_texto, hoje, normalizar_busca
+from .alertas import avisar_lojas_da_regiao
 from .comum import SQL_PROPOSTA, RegraNegocio, notificar
 
 SQL_PRODUTO = """
@@ -108,6 +109,7 @@ def criar_produto(db, vendedor_id, dados, atributos, fotos):
             "UPDATE usuario SET municipio_id = ? WHERE id = ? AND municipio_id IS NULL",
             (dados["municipio_id"], vendedor_id),
         )
+        avisar_lojas_da_regiao(db, produto_id)
     return produto_id
 
 

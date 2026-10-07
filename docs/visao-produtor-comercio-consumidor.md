@@ -47,6 +47,10 @@ No cadastro, a pessoa marca como vai usar o sistema (vender, comprar para o com�
 | RN10 | Todo produto é vendido para pelo menos um público (consumidor final, lojas ou os dois), com preço próprio para cada um. Os campos de um público desmarcado são ignorados. Se o produtor deixa de vender para um público, as propostas pendentes daquele público são encerradas com aviso | `app/produtos/forms.py`, `app/servicos/produtos.py` |
 | RN11 | A inspeção limita a venda: produto **sem registro** só pode ser oferecido a lojas (o cadastro recusa "consumidor final"); com **SIM**, só recebe proposta de comprador do mesmo município; com **SIE**, do mesmo estado. Se a cidade do comprador não é conhecida, vale o aviso na página | `app/inspecao.py`, `app/servicos/produtos.py` |
 | RN12 | O canal da proposta (consumidor ou loja) é decidido no servidor, pelo perfil e pelo modo de quem compra, nunca pelo formulário. A cotação de loja respeita o pedido mínimo, e o produtor vê o nome da loja | `app/visibilidade.py` (`canal_de_compra`), `app/servicos/produtos.py` |
+| RN14 | Conversa sempre tem assunto (produto, vitrine, loja, encomenda ou proposta) e a outra pessoa sai do assunto, consultado no servidor. Só os dois participantes leem; para os outros, a conversa não existe (404). Só produtor começa conversa com loja (RN06) | `app/servicos/conversas.py` |
+| RN15 | Limites contra spam: 20 conversas novas por dia e 60 mensagens por hora por pessoa | `app/servicos/conversas.py`, configuração em `app/__init__.py` |
+| RN16 | Produto novo vendido a lojas avisa as lojas da mesma região imediata que compram a categoria (ou a categoria principal dela). Encomenda nova avisa os produtores da mesma região que vendem a categoria | `app/servicos/alertas.py` |
+| RN17 | Aviso leva sempre a uma página do próprio site (o link passa por `destino_seguro`) | `app/comunicacao/routes.py` |
 | RN13 | Um preço que a pessoa não pode ver não aparece no HTML e não influencia filtros nem ordenação por preço. Sem isso, uma loja não verificada descobriria o preço escondido testando faixas de preço | `app/visibilidade.py` (`preco_sql`) |
 
 ### Visibilidade de preço
@@ -71,11 +75,11 @@ O preço de lojas é filtrado no servidor. Os testes de `tests/test_visibilidade
 | RF30 | Busca e diretórios por região (região imediata do IBGE) | **Feito** (produtores e comércios na Iteração 3; produtos e encomendas na 4) |
 | RF31 | Pedido do consumidor e cotação da loja (pedido mínimo) | **Feito** (Iteração 4) |
 | RF32 | Disponibilidade sazonal e "disponível agora" | **Feito** (Iteração 4) |
-| RF33 | Conversas entre produtor, comércio e consumidor | Iteração 5 |
+| RF33 | Conversas entre produtor, comércio e consumidor | **Feito** (Iteração 5) |
 | RF34 | Contrato de fornecimento com versões e aceite registrado (data, usuário, hash) | Iteração 6 |
 | RF35 | Versão imprimível do contrato | Iteração 6 |
 | RF36 | Parcerias públicas: "onde comprar" | Iteração 6 |
-| RF37 | Alertas de novo produto na região para lojas | Iteração 5 |
+| RF37 | Alertas de novo produto na região para lojas (e de encomenda nova para produtores) | **Feito** (Iteração 5) |
 | RF38 | Verificação de comércio pela administração | Comando de terminal **feito**. Tela na Iteração 7 |
 
 ## 5 Modelo de dados
@@ -97,6 +101,9 @@ erDiagram
     PRODUTO ||--o{ PROPOSTA : recebe
     USUARIO ||--o{ ENCOMENDA : publica
     ENCOMENDA ||--o{ PROPOSTA : recebe
+    USUARIO ||--o{ CONVERSA : participa
+    CONVERSA ||--o{ MENSAGEM : tem
+    USUARIO ||--o{ NOTIFICACAO : recebe
     PERFIL_PRODUTOR ||--o{ CONTRATO : "fornece (planejado)"
     PERFIL_COMERCIO ||--o{ CONTRATO : "compra (planejado)"
     CONTRATO ||--o{ CONTRATO_VERSAO : "planejado"
@@ -149,6 +156,22 @@ erDiagram
         int preco_unitario_centavos
         real quantidade
         text status
+    }
+    CONVERSA {
+        int id PK
+        text contexto_tipo "produto, vitrine, loja, encomenda, proposta"
+        int contexto_id
+        int usuario_a_id FK "menor id do par"
+        int usuario_b_id FK "maior id do par"
+        int iniciada_por FK
+        text ultima_mensagem_em
+    }
+    MENSAGEM {
+        int id PK
+        int conversa_id FK
+        int remetente_id FK
+        text conteudo "1 a 2.000 caracteres"
+        text lida_em
     }
     PERFIL_COMERCIO {
         int usuario_id PK

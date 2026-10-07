@@ -32,13 +32,15 @@ def create_app(test_config=None):
         MAX_CONTENT_LENGTH=25 * 1024 * 1024,  # até 5 fotos de celular por envio
         FOTO_TAMANHO_MAXIMO=8 * 1024 * 1024,
         FOTOS_POR_PRODUTO=5,
-        TERMOS_VERSAO="2026-10-v0.3",
+        TERMOS_VERSAO="2026-10-v0.4",
         REPOSITORIO_URL="https://github.com/templaspreguissa/AgroEcomenda",
         SENHA_MINIMA=15,
         LOGIN_MAX_FALHAS=5,
         LOGIN_BLOQUEIO_MINUTOS=15,
         WTF_I18N_ENABLED=False,  # mensagens do WTForms em português via Meta.locales (app/formularios.py)
         ITENS_POR_PAGINA=20,
+        CONVERSAS_NOVAS_POR_DIA=20,  # contra spam (RF33)
+        MENSAGENS_POR_HORA=60,
     )
 
     if test_config is None:
@@ -76,6 +78,7 @@ def create_app(test_config=None):
     visibilidade.registrar(app)
 
     from .auth import bp as auth_bp
+    from .comunicacao import bp as comunicacao_bp
     from .encomendas import bp as encomendas_bp
     from .main import bp as main_bp
     from .perfis import bp as perfis_bp
@@ -84,6 +87,7 @@ def create_app(test_config=None):
     app.register_blueprint(perfis_bp)
     app.register_blueprint(produtos_bp)
     app.register_blueprint(encomendas_bp)
+    app.register_blueprint(comunicacao_bp)
     app.register_blueprint(main_bp)
 
     @app.after_request

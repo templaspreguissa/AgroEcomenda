@@ -63,6 +63,11 @@
       {% elif motivo_sem_compra and not sou_vendedor %}
         <p class="aviso aviso--info">{{ motivo_sem_compra }}</p>
       {% endif %}
+      {% if g.usuario and not sou_vendedor %}
+        <a class="botao botao--secundario botao--largo" href="{{ url_for('comunicacao.nova', sobre='produto', id=produto.id) }}">Perguntar ao produtor</a>
+      {% elif not g.usuario %}
+        <a class="botao botao--secundario botao--largo" href="{{ url_for('auth.entrar', next=url_for('comunicacao.nova', sobre='produto', id=produto.id)) }}">Entrar para perguntar ao produtor</a>
+      {% endif %}
     </div>
   </div>
 
@@ -128,8 +133,9 @@
                 <td data-rotulo="Transporte">{{ TRANSPORTE[p.transporte] }}</td>
                 <td data-rotulo="Situação">{{ etiqueta(p.status, STATUS_PROPOSTA) }}</td>
                 <td data-rotulo="Ações">
-                  {%- if p.status == 'pendente' %}
                     <div class="acoes acoes--compactas">
+                      <a class="botao botao--pequeno botao--secundario" href="{{ url_for('comunicacao.nova', sobre='proposta', id=p.id) }}">Mensagem</a>
+                  {%- if p.status == 'pendente' %}
                       {% if produto.status == 'ativo' %}
                         <form method="post" action="{{ url_for('produtos.responder', proposta_id=p.id, acao='aceitar') }}" data-confirmar="Aceitar esta proposta de compra? O contato de vocês dois será liberado.">
                           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -140,8 +146,8 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button class="botao botao--pequeno botao--secundario" type="submit">Recusar</button>
                       </form>
-                    </div>
                   {% endif -%}
+                    </div>
                 </td>
               </tr>
             {% endfor %}
@@ -166,13 +172,17 @@
             <p><strong>O produtor aceitou sua proposta.</strong></p>
             <p>Contato do produtor: {{ produto.vendedor_nome }}, <a href="mailto:{{ produto.vendedor_email }}">{{ produto.vendedor_email }}</a>. Combinem pagamento e entrega diretamente.</p>
           </div>
-        {% elif p.status == 'pendente' %}
+        {% endif %}
+        {% if p.status in ('pendente', 'aceita') %}
           <div class="acoes">
+            <a class="botao botao--secundario" href="{{ url_for('comunicacao.nova', sobre='proposta', id=p.id) }}">Conversar com o produtor</a>
+            {% if p.status == 'pendente' %}
             <a class="botao botao--secundario" href="{{ url_for('produtos.proposta', produto_id=produto.id) }}">Editar proposta</a>
             <form method="post" action="{{ url_for('produtos.retirar', proposta_id=p.id) }}" data-confirmar="Retirar sua proposta?">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button class="botao botao--perigo" type="submit">Retirar proposta</button>
             </form>
+            {% endif %}
           </div>
         {% endif %}
       </section>

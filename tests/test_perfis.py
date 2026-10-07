@@ -81,7 +81,7 @@ def test_criar_vitrine_e_ver_pagina_publica(app, pessoas, client):
     pagina = client.get(f"/produtores/{produtora_id}").get_data(as_text=True)
     assert "Sítio Boa Vista" in pagina and "Uberaba/MG" in pagina
     assert "Feira do Produtor, sábados" in pagina
-    assert "Para negociar, faça uma proposta" in pagina  # sem telefone público
+    assert "Mandar mensagem" in pagina and "wa.me" not in pagina  # sem telefone público, contato pela plataforma
 
 
 @pytest.mark.parametrize("mudancas, mensagem", [

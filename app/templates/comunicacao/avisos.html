@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_macros.html" import paginacao %}
+{% block titulo %}Avisos{% endblock %}
+{% block conteudo %}
+{% set icones = {
+  'nova_proposta': '📩', 'proposta_aceita': '✅', 'proposta_recusada': '✖️', 'nova_mensagem': '💬',
+  'encomenda_expirada': '⏳', 'conteudo_moderado': '⚠️', 'produto_na_regiao': '🧺', 'encomenda_na_regiao': '📋'} %}
+<section class="secao secao--media">
+  <div class="cabecalho-secao">
+    <div>
+      <h1>Avisos</h1>
+      <p class="texto-apoio">Propostas, respostas, mensagens novas e oportunidades perto de você.</p>
+    </div>
+    {% if g.usuario.avisos_nao_lidos %}
+      <form method="post" action="{{ url_for('comunicacao.marcar_lidos') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="botao botao--secundario botao--pequeno" type="submit">Marcar todos como lidos</button>
+      </form>
+    {% endif %}
+  </div>
+
+  {% if avisos %}
+    <ul class="avisos-lista">
+      {% for a in avisos %}
+        <li class="aviso-item{% if not a.lida_em %} aviso-item--novo{% endif %}">
+          <span class="aviso-item__icone" aria-hidden="true">{{ icones.get(a.tipo, '🔔') }}</span>
+          <a href="{{ url_for('comunicacao.abrir_aviso', aviso_id=a.id) }}">{% if not a.lida_em %}<span class="sr">Novo: </span>{% endif %}{{ a.texto }}</a>
+          <span class="card__suave">{{ a.criada_em | data_hora_br }}{% if not a.lida_em %} · <strong>novo</strong>{% endif %}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="vazio-bloco">Nenhum aviso por enquanto.</p>
+  {% endif %}
+
+  {{ paginacao('comunicacao.avisos', pagina, paginas, {}) }}
+</section>
+{% endblock %}

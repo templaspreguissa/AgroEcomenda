@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros.html" import campo %}
+{% block titulo %}Conversa com {{ outro }}{% endblock %}
+{% block conteudo %}
+<section class="secao secao--media">
+  <p class="card__meta"><a href="{{ url_for('comunicacao.caixa') }}">Mensagens</a></p>
+  <h1>{{ outro }}</h1>
+  <p class="texto-apoio">Sobre: <a href="{{ link }}">{{ titulo }}</a>{% if conversa.outro_loja_verificada %} · <span class="selo selo--verificado">Loja verificada</span>{% endif %}</p>
+
+  <ol class="mensagens" aria-label="Mensagens da conversa">
+    {% for m in mensagens %}
+      {% set minha = m.remetente_id == g.usuario.id %}
+      <li class="mensagem{{ ' mensagem--minha' if minha else '' }}"{% if loop.last %} id="ultima"{% endif %}>
+        <p class="mensagem__quem">{{ 'Você' if minha else outro }} <span class="card__suave">· {{ m.enviada_em | data_hora_br }}</span></p>
+        <p class="mensagem__texto texto-livre">{{ m.conteudo }}</p>
+        {% if minha and loop.last %}<p class="card__suave">{{ 'Lida' if m.lida_em else 'Ainda não lida' }}</p>{% endif %}
+      </li>
+    {% endfor %}
+  </ol>
+
+  <form class="formulario" method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ campo(form.texto, extras={'rows': 3, 'maxlength': 2000}) }}
+    <button class="botao botao--largo" type="submit">Enviar</button>
+  </form>
+  {% include "comunicacao/_dicas.html" %}
+</section>
+{% endblock %}
