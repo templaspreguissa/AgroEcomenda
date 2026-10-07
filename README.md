@@ -10,7 +10,7 @@ Uma mesma conta pode ter até três papéis:
 
 A plataforma **não vende produtos, não intermedia pagamentos e não faz entregas**. Ela ajuda o produtor a vender mais, os comércios a conhecerem as opções da região e o consumidor a chegar direto a quem produz. A visão completa, as regras de negócio e as fontes estão em [docs/visao-produtor-comercio-consumidor.md](docs/visao-produtor-comercio-consumidor.md).
 
-> **Status:** as sete iterações do plano estão concluídas. O sistema tem vitrines de produtores, lojas com CNPJ, produtos com preço para o consumidor e para lojas, busca por região, encomendas e propostas, conversas e avisos, contratos de fornecimento com aceite registrado e "onde comprar", e uma administração mínima com denúncias, verificação de lojas, bloqueio de contas e registro de cada ação. A conta pode baixar os próprios dados, ser excluída e recuperar a senha. São 332 testes automáticos, incluindo revisões de segurança e de acessibilidade. Para apresentar, siga o [roteiro de demonstração](docs/roteiro-demonstracao.md).
+> **Status:** as sete iterações do plano estão concluídas. O sistema tem vitrines de produtores, lojas com CNPJ, produtos com preço para o consumidor e para lojas, busca por região, encomendas e propostas, conversas e avisos, contratos de fornecimento com aceite registrado e "onde comprar", e uma administração mínima com denúncias, verificação de lojas, bloqueio de contas e registro de cada ação. A conta pode baixar os próprios dados, ser excluída e recuperar a senha. São 334 testes automáticos, incluindo revisões de segurança e de acessibilidade. Para apresentar, siga o [roteiro de demonstração](docs/roteiro-demonstracao.md). Para colocar o site na internet, siga [Publicar no PythonAnywhere](docs/publicar-no-pythonanywhere.md).
 
 ## Como funciona: produtores, comércios e consumidores
 
@@ -113,7 +113,7 @@ flask --app app init-db
 flask --app app carregar-municipios MG
 
 # 5. (Opcional) Carregar dados de demonstração fictícios: 3 produtores, 2 lojas, 1 consumidor e 1 administração
-flask --app app carregar-demo
+flask --app app carregar-demo --senha-fixa
 
 # 6. Rodar em modo de desenvolvimento
 flask --app app run --debug
@@ -121,7 +121,7 @@ flask --app app run --debug
 
 Acesse <http://127.0.0.1:5000>. O banco fica em `instance/agroencomenda.db` e as fotos em `instance/uploads/`, ambos fora do Git.
 
-As contas de demonstração usam e-mails terminados em `.demo@example.com`: `ana` (produtora), `carlos` (queijaria), `jose` (fazenda de café e milho), `rita` (mercado verificado), `paulo` (restaurante ainda não verificado), `marina` (consumidora) e `admin` (administração). A senha, igual para todas, está em `app/demo.py`. Use só no computador local.
+As contas de demonstração usam e-mails terminados em `.demo@example.com`: `ana` (produtora), `carlos` (queijaria), `jose` (fazenda de café e milho), `rita` (mercado verificado), `paulo` (restaurante ainda não verificado), `marina` (consumidora) e `admin` (administração). Com `--senha-fixa`, a senha de todas é a de `app/demo.py`. Como esse arquivo é público, use essa opção só no computador local. Sem ela, o comando sorteia uma senha para as contas da história e outra para a administração, e mostra as duas uma única vez. É assim que se carrega a demonstração no site publicado.
 
 Para dar o papel de administração a uma conta (ou tirar, com `--remover`):
 
@@ -141,7 +141,7 @@ No Linux ou macOS, troque `py -3` por `python3` e ative o ambiente com `source .
 pytest
 ```
 
-São 332 testes. Além das regras de negócio, há três revisões automáticas que valem para as telas que forem criadas depois:
+São 334 testes. Além das regras de negócio, há três revisões automáticas que valem para as telas que forem criadas depois:
 
 - `tests/test_seguranca.py` percorre **todas as rotas**: o que não é página pública exige login, a administração recusa quem não é administrador e todo POST sem token CSRF é recusado;
 - `tests/test_acessibilidade.py` abre as páginas como visitante, produtora, loja e administração e confere idioma, título, um único `h1`, ids sem repetição, rótulo em todo campo, texto alternativo em imagens e nome em links e botões, além do **contraste** das cores do CSS (pelo menos 4,5:1, WCAG 2.2, critério 1.4.3);
@@ -149,7 +149,9 @@ São 332 testes. Além das regras de negócio, há três revisões automáticas 
 
 ### Fora do modo de desenvolvimento
 
-Sem a variável `FLASK_SECRET_KEY`, a aplicação usa uma chave temporária e as sessões caem a cada reinício. Para publicar, gere uma chave e defina a variável de ambiente antes de iniciar:
+O passo a passo completo para publicar está em [docs/publicar-no-pythonanywhere.md](docs/publicar-no-pythonanywhere.md). O PythonAnywhere foi escolhido porque o plano gratuito guarda os arquivos (o banco SQLite e as fotos) e libera a API do IBGE.
+
+Sem a chave secreta (`SECRET_KEY` em `instance/config.py` ou a variável `FLASK_SECRET_KEY`), a aplicação usa uma chave temporária e as sessões caem a cada reinício. Para gerar uma e defini-la como variável de ambiente:
 
 ```powershell
 python -c "import secrets; print(secrets.token_hex())"
@@ -190,6 +192,8 @@ app/
 └── static/            # CSS e JavaScript
 docs/
 ├── benchmark-marketplaces.md            # análise de interface de OLX, Agrofy, MF Rural, Grão Direto, GetNinjas...
+├── publicar-no-pythonanywhere.md       # passo a passo para colocar o site na internet
+├── roteiro-demonstracao.md             # roteiro de 15 minutos para a apresentação
 └── visao-produtor-comercio-consumidor.md # visão v2: papéis, regras, requisitos RF26–RF38, diagramas e fontes
 tests/                 # testes automatizados (pytest)
 ```

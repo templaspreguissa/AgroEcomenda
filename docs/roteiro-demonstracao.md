@@ -9,13 +9,13 @@ Recrie o banco para a demonstração começar sempre igual:
 ```powershell
 flask --app app init-db --yes
 flask --app app carregar-municipios MG
-flask --app app carregar-demo
+flask --app app carregar-demo --senha-fixa
 flask --app app run --debug
 ```
 
-- Contas: `ana`, `carlos`, `jose`, `rita`, `paulo`, `marina` e `admin`, todas com e-mail `<nome>.demo@example.com`. A senha está em `app/demo.py`.
+- Contas: `ana`, `carlos`, `jose`, `rita`, `paulo`, `marina` e `admin`, todas com e-mail `<nome>.demo@example.com`. A senha está em `app/demo.py` (opção `--senha-fixa`). No site publicado, as senhas são as que o `carregar-demo` mostrou no servidor ([como publicar](publicar-no-pythonanywhere.md)).
 - Dica: use **duas janelas** do navegador, uma normal e uma anônima, para mostrar duas pessoas ao mesmo tempo (por exemplo, a loja e a produtora).
-- Deixe um terminal aberto com o `pytest` já rodado (332 testes) para a parte de qualidade.
+- Deixe um terminal aberto com o `pytest` já rodado (334 testes) para a parte de qualidade.
 
 | Conta | Papel na história |
 |---|---|
@@ -71,7 +71,7 @@ Página inicial, sem entrar. Mostre as três portas: "Sou produtor", "Tenho um c
 
 ## 7. Qualidade (2 min)
 
-- `pytest`: 332 testes. Destaque `test_visibilidade.py` (o preço de loja nunca chega ao HTML de quem não pode vê-lo), `test_seguranca.py` (todas as rotas, login, administração e CSRF) e `test_acessibilidade.py` (estrutura das páginas e contraste das cores).
+- `pytest`: 334 testes. Destaque `test_visibilidade.py` (o preço de loja nunca chega ao HTML de quem não pode vê-lo), `test_seguranca.py` (todas as rotas, login, administração e CSRF) e `test_acessibilidade.py` (estrutura das páginas e contraste das cores).
 - Documentos: `docs/visao-produtor-comercio-consumidor.md` (requisitos RF26–RF38, regras de negócio, diagramas e fontes), `docs/benchmark-marketplaces.md` e a pesquisa do projeto.
 
 ## Perguntas que a banca pode fazer

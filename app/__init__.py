@@ -28,6 +28,7 @@ def create_app(test_config=None):
         PASTA_FOTOS=os.path.join(app.instance_path, "uploads"),  # fora de /static e fora do Git
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_SECURE=None,  # o padrão do Flask é False; None = decidir abaixo, depois da configuração local
         PERMANENT_SESSION_LIFETIME=timedelta(days=7),
         MAX_CONTENT_LENGTH=25 * 1024 * 1024,  # até 5 fotos de celular por envio
         FOTO_TAMANHO_MAXIMO=8 * 1024 * 1024,
@@ -59,8 +60,9 @@ def create_app(test_config=None):
             app.config["SECRET_KEY"] = secrets.token_hex()
             app.logger.warning("FLASK_SECRET_KEY não definida: usando chave temporária.")
 
-    if app.config.get("SESSION_COOKIE_SECURE") is None and not app.debug and not app.testing:
-        app.config["SESSION_COOKIE_SECURE"] = True
+    if app.config["SESSION_COOKIE_SECURE"] is None:
+        # Fora do desenvolvimento e dos testes, o cookie de login só trafega em HTTPS.
+        app.config["SESSION_COOKIE_SECURE"] = not app.debug and not app.testing
 
     os.makedirs(app.instance_path, exist_ok=True)
     logging.basicConfig(level=logging.INFO)

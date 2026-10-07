@@ -65,8 +65,9 @@ def test_comando_carregar_demo(app):
     from app.demo import DEMO_SENHA
 
     executor = app.test_cli_runner()
-    resultado = executor.invoke(args=["carregar-demo"])
+    resultado = executor.invoke(args=["carregar-demo", "--senha-fixa"])
     assert "Dados de demonstração carregados" in resultado.output
+    assert DEMO_SENHA not in resultado.output
     with app.app_context():
         db = get_db()
         assert db.execute("SELECT COUNT(*) FROM perfil_produtor").fetchone()[0] == 3
@@ -86,6 +87,26 @@ def test_comando_carregar_demo(app):
 
     de_novo = executor.invoke(args=["carregar-demo"])
     assert de_novo.exit_code != 0 and "já foram carregados" in de_novo.output
+
+
+def test_carregar_demo_sem_senha_fixa_sorteia_senhas(app):
+    """No site publicado a senha de app/demo.py é pública: sem --senha-fixa, ninguém entra com ela."""
+    import re
+
+    from app.demo import DEMO_SENHA
+
+    from .conftest import entrar
+
+    resultado = app.test_cli_runner().invoke(args=["carregar-demo"])
+    assert resultado.exit_code == 0
+    senha = re.search(r"marina: (\S+)", resultado.output).group(1)
+    senha_admin = re.search(r"admin\.demo@example\.com: (\S+)", resultado.output).group(1)
+    assert len(senha) >= 15 and len(senha_admin) >= 15 and senha != senha_admin
+
+    assert entrar(app.test_client(), "ana.demo@example.com", DEMO_SENHA).status_code == 200  # recusado
+    assert entrar(app.test_client(), "admin.demo@example.com", senha).status_code == 200  # a da história não serve
+    assert entrar(app.test_client(), "ana.demo@example.com", senha).headers["Location"] == "/painel"
+    assert entrar(app.test_client(), "admin.demo@example.com", senha_admin).headers["Location"] == "/painel"
 
 
 def test_init_db_apaga_tabelas_de_versoes_antigas(app):

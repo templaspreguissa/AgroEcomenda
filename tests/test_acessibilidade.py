@@ -102,7 +102,7 @@ def auditar(html):
 
 @pytest.fixture
 def demo(app):
-    app.test_cli_runner().invoke(args=["carregar-demo"])
+    app.test_cli_runner().invoke(args=["carregar-demo", "--senha-fixa"])
     with app.app_context():
         ids = {linha["email"].split(".")[0]: linha["id"] for linha in get_db().execute("SELECT id, email FROM usuario")}
     return {apelido: cliente_logado(app, usuario_id) for apelido, usuario_id in ids.items()} | {"ids": ids}

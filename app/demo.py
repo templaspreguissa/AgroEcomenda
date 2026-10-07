@@ -1,9 +1,12 @@
 """Dados de demonstração, todos fictícios (comando: flask --app app carregar-demo).
 
 Servem para apresentar o trabalho e testar no navegador sem cadastrar tudo à mão.
-Use só em ambiente local. Nomes, e-mails (domínio reservado example.com) e CNPJs são inventados;
+Nomes, e-mails (domínio reservado example.com) e CNPJs são inventados;
 os CNPJs têm dígitos verificadores válidos, mas o prefixo DEMO deixa claro que não são de empresas reais.
 As contas não têm telefone público para não exibir número de alguém de verdade.
+
+A senha fixa abaixo está no repositório público, então só serve no computador local (opção --senha-fixa).
+Sem essa opção, o comando sorteia as senhas, e é assim que se carrega a demonstração no site publicado.
 """
 from datetime import timedelta
 
@@ -16,7 +19,7 @@ from .db import salvar_municipios
 from .perfis.dados import salvar_perfil_comercio, salvar_perfil_produtor, verificar_comercio
 from .util import agora_utc_texto, hoje
 
-# Senha das contas de demonstração (mesma para todas). Só para uso local.
+# Senha fixa das contas de demonstração (mesma para todas). Só para uso local: é pública no GitHub.
 DEMO_SENHA = "demonstracao do agro na feira"
 DOMINIO = "example.com"
 
@@ -84,7 +87,9 @@ def _comercio(db, usuario_id, nome, cnpj, tipo, municipio_id, interesses, volume
     }, interesses)
 
 
-def carregar_demo(db):
+def carregar_demo(db, senha=DEMO_SENHA, senha_admin=None):
+    """Cria os dados fictícios. `senha` vale para as pessoas da história; `senha_admin`, para a administração
+    (se não vier, é a mesma). Separar as duas permite mostrar o site a alguém sem entregar a administração."""
     if db.execute("SELECT 1 FROM usuario WHERE email LIKE ?", (f"%.demo@{DOMINIO}",)).fetchone():
         raise DemoJaCarregada("Os dados de demonstração já foram carregados. Para recomeçar, rode init-db antes.")
 
@@ -92,7 +97,8 @@ def carregar_demo(db):
         uf = "MG"
         salvar_municipios(uf, [(codigo, nome, regiao_id, regiao_nome)])
 
-    senha_hash = generate_password_hash(DEMO_SENHA, method=METODO_HASH)
+    senha_hash = generate_password_hash(senha, method=METODO_HASH)
+    senha_admin_hash = senha_hash if senha_admin is None else generate_password_hash(senha_admin, method=METODO_HASH)
     with db:
         ana = _conta(db, senha_hash, "Ana Ribeiro", "ana", "PF", UBERABA)
         carlos = _conta(db, senha_hash, "Carlos Mendes", "carlos", "PJ", SACRAMENTO)
@@ -100,7 +106,7 @@ def carregar_demo(db):
         rita = _conta(db, senha_hash, "Rita Souza", "rita", "PJ", UBERABA)
         paulo = _conta(db, senha_hash, "Paulo Lima", "paulo", "PJ", SACRAMENTO)
         marina = _conta(db, senha_hash, "Marina Costa", "marina", "PF", UBERABA)
-        admin = _conta(db, senha_hash, "Equipe AgroEncomenda", "admin", "PJ", UBERABA)
+        admin = _conta(db, senha_admin_hash, "Equipe AgroEncomenda", "admin", "PJ", UBERABA)
         db.execute("UPDATE usuario SET papel = 'admin' WHERE id = ?", (admin,))
 
     # Produtores e o que produzem
@@ -180,6 +186,5 @@ def carregar_demo(db):
 
     return (
         "Dados de demonstração carregados: 3 produtores, 2 comércios (1 verificado), 1 consumidor, 1 administração, "
-        "9 produtos, 1 encomenda, 1 conversa, 1 contrato ativo e 1 denúncia. E-mails terminam em .demo@example.com. "
-        "A senha está em app/demo.py."
+        "9 produtos, 1 encomenda, 1 conversa, 1 contrato ativo e 1 denúncia. E-mails terminam em .demo@example.com."
     )

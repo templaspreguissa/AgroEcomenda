@@ -87,3 +87,21 @@ def test_cabecalhos_de_seguranca_em_todas_as_respostas(client, url):
     assert "frame-ancestors 'self'" in resposta.headers["Content-Security-Policy"]
     assert resposta.headers["X-Content-Type-Options"] == "nosniff"
     assert resposta.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
+
+
+def test_cookie_de_login_so_em_https_fora_do_desenvolvimento(tmp_path):
+    """No site publicado o cookie de sessão leva o atributo Secure (o padrão do Flask é não levar)."""
+    from app import create_app
+    from app.db import init_db
+
+    publicado = create_app({"SECRET_KEY": "chave", "DATABASE": str(tmp_path / "p.db"), "PASTA_FOTOS": str(tmp_path)})
+    assert publicado.config["SESSION_COOKIE_SECURE"] is True
+    with publicado.app_context():
+        init_db()
+    resposta = publicado.test_client().get("/entrar", base_url="https://localhost")
+    assert "Secure" in resposta.headers["Set-Cookie"]
+
+    configurado = create_app({"SECRET_KEY": "chave", "DATABASE": str(tmp_path / "c.db"), "SESSION_COOKIE_SECURE": False})
+    assert configurado.config["SESSION_COOKIE_SECURE"] is False
+    testes = create_app({"TESTING": True, "SECRET_KEY": "chave", "DATABASE": str(tmp_path / "t.db")})
+    assert testes.config["SESSION_COOKIE_SECURE"] is False

@@ -1,4 +1,6 @@
 """Comandos de linha de comando além dos do banco (app/db.py)."""
+import secrets
+
 import click
 from flask.cli import with_appcontext
 
@@ -39,15 +41,28 @@ def tornar_admin_command(email, remover):
 
 
 @click.command("carregar-demo")
+@click.option("--senha-fixa", is_flag=True,
+              help="Usa a senha de app/demo.py, que é pública. Só no computador local, nunca no site publicado.")
 @with_appcontext
-def carregar_demo_command():
-    """Cria contas, vitrines, lojas e produtos fictícios para demonstração (só em ambiente local)."""
-    from .demo import DemoJaCarregada, carregar_demo
+def carregar_demo_command(senha_fixa):
+    """Cria contas, vitrines, lojas e produtos fictícios para demonstração.
+
+    Sem --senha-fixa, sorteia uma senha para as pessoas da história e outra para a administração,
+    e mostra as duas uma única vez.
+    """
+    from .demo import DEMO_SENHA, DemoJaCarregada, carregar_demo
+    senha, senha_admin = (DEMO_SENHA, None) if senha_fixa else (secrets.token_urlsafe(12), secrets.token_urlsafe(12))
     try:
-        resumo = carregar_demo(get_db())
+        resumo = carregar_demo(get_db(), senha, senha_admin)
     except DemoJaCarregada as erro:
         raise click.ClickException(str(erro)) from erro
     click.echo(resumo)
+    if senha_fixa:
+        click.echo("Senha de todas as contas: a de app/demo.py.")
+    else:
+        click.echo(f"Senha de ana, carlos, jose, rita, paulo e marina: {senha}")
+        click.echo(f"Senha de admin.demo@example.com: {senha_admin}")
+        click.echo("Anote agora: as senhas não ficam guardadas e não aparecem de novo.")
 
 
 def init_app(app):
