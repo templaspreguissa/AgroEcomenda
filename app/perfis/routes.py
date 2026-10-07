@@ -2,20 +2,22 @@
 import functools
 from math import ceil
 
-from flask import abort, current_app, flash, g, redirect, render_template, request, session, url_for
+from flask import Response, abort, current_app, flash, g, redirect, render_template, request, session, url_for
+from werkzeug.security import check_password_hash
 
 from .. import cnpj, visibilidade
-from ..auth.routes import destino_seguro, login_obrigatorio
+from ..auth.routes import destino_seguro, esta_bloqueado, limpar_falhas, login_obrigatorio, registrar_falha
 from ..db import get_db
 from ..formularios import escolhas_categorias
 from ..fotos import FotoInvalida, apagar_fotos, arquivos_enviados, processar_foto
 from ..localidades import (
     municipio_de_referencia, municipios_para_lista, proximidade_sql, rotulo_do_codigo, ufs_carregadas,
 )
-from ..servicos import SQL_ENCOMENDA, SQL_PRODUTO, contratos, expirar_encomendas_vencidas
+from ..servicos import SQL_ENCOMENDA, SQL_PRODUTO, conta, contratos, expirar_encomendas_vencidas
+from ..servicos.comum import RegraNegocio
 from ..util import FORMAS_VENDA, TIPOS_COMERCIO, formatar_telefone, normalizar_busca
 from . import bp, dados
-from .forms import ContaForm, PerfilComercioForm, PerfilProdutorForm
+from .forms import ContaForm, ExcluirContaForm, PerfilComercioForm, PerfilProdutorForm
 
 
 def _eh_admin():
@@ -104,7 +106,8 @@ def vitrine(usuario_id):
     db = get_db()
     perfil = dados.perfil_produtor(db, usuario_id)
     sou_dono = bool(g.usuario) and g.usuario["id"] == usuario_id
-    if perfil is None or (perfil["status"] != "ativo" and not sou_dono and not _eh_admin()):
+    if perfil is None or ((perfil["status"] != "ativo" or perfil["conta_status"] != "ativo") and not sou_dono
+                          and not _eh_admin()):
         abort(404)
     # O dono vê todos os seus produtos. Os outros veem os do seu público (consumidor ou loja).
     publico = "1 = 1" if sou_dono or _eh_admin() else visibilidade.publico_sql("pd")
@@ -131,7 +134,7 @@ def produtores():
     so_regiao = request.args.get("regiao") == "1" and referencia is not None and referencia["regiao_imediata_id"]
 
     publico = visibilidade.publico_sql("pd")
-    condicoes, parametros = ["pp.status = 'ativo'"], []
+    condicoes, parametros = ["pp.status = 'ativo'", "u.status = 'ativo'"], []
     for palavra in normalizar_busca(termo).split():
         condicoes.append(
             "(pp.nome_busca LIKE ? ESCAPE '\\' OR EXISTS (SELECT 1 FROM produto pd WHERE pd.vendedor_id = pp.usuario_id "
@@ -154,7 +157,8 @@ def produtores():
     ordem, parametros_ordem = proximidade_sql("m", referencia)
 
     total = db.execute(
-        f"SELECT COUNT(*) FROM perfil_produtor pp JOIN municipio m ON m.codigo_ibge = pp.municipio_id WHERE {onde}",
+        f"SELECT COUNT(*) FROM perfil_produtor pp JOIN usuario u ON u.id = pp.usuario_id "
+        f"JOIN municipio m ON m.codigo_ibge = pp.municipio_id WHERE {onde}",
         parametros,
     ).fetchone()[0]
     pagina, paginas, por_pagina = _paginar(total)
@@ -230,7 +234,8 @@ def comercio(usuario_id):
     db = get_db()
     perfil = dados.perfil_comercio(db, usuario_id)
     sou_dono = g.usuario["id"] == usuario_id
-    if perfil is None or (perfil["status"] != "ativo" and not sou_dono and not _eh_admin()):
+    if perfil is None or ((perfil["status"] != "ativo" or perfil["conta_status"] != "ativo") and not sou_dono
+                          and not _eh_admin()):
         abort(404)
     if not _pode_ver_comercio(usuario_id):
         return render_template("perfis/so_produtores.html"), 403
@@ -258,7 +263,7 @@ def comercios():
     uf = (request.args.get("uf") or "").upper()[:2]
     so_regiao = request.args.get("regiao") == "1" and referencia is not None and referencia["regiao_imediata_id"]
 
-    condicoes, parametros = ["pc.status = 'ativo'"], []
+    condicoes, parametros = ["pc.status = 'ativo'", "u.status = 'ativo'"], []
     for palavra in normalizar_busca(termo).split():
         condicoes.append("pc.nome_busca LIKE ? ESCAPE '\\'")
         parametros.append(f"%{_escapar_like(palavra)}%")
@@ -283,7 +288,8 @@ def comercios():
     ordem, parametros_ordem = proximidade_sql("m", referencia)
 
     total = db.execute(
-        f"SELECT COUNT(*) FROM perfil_comercio pc JOIN municipio m ON m.codigo_ibge = pc.municipio_id WHERE {onde}",
+        f"SELECT COUNT(*) FROM perfil_comercio pc JOIN usuario u ON u.id = pc.usuario_id "
+        f"JOIN municipio m ON m.codigo_ibge = pc.municipio_id WHERE {onde}",
         parametros,
     ).fetchone()[0]
     pagina, paginas, por_pagina = _paginar(total)
@@ -334,3 +340,42 @@ def ver_como():
     else:
         session.pop("ver_como", None)
     return redirect(destino_seguro(request.form.get("voltar")) or url_for("produtos.lista"))
+
+
+# ---------- direitos do titular (RF21; LGPD, art. 18) ----------
+
+@bp.route("/minha-conta/meus-dados.json")
+@login_obrigatorio
+def exportar_dados():
+    """Todos os dados da conta em JSON (acesso e portabilidade)."""
+    return Response(
+        conta.exportar_dados(get_db(), g.usuario["id"]), mimetype="application/json",
+        headers={"Content-Disposition": 'attachment; filename="meus-dados-agroencomenda.json"', "Cache-Control": "no-store"},
+    )
+
+
+@bp.route("/minha-conta/excluir", methods=["GET", "POST"])
+@login_obrigatorio
+def excluir_conta():
+    db = get_db()
+    form = ExcluirContaForm()
+    if form.validate_on_submit():
+        email = g.usuario["email"]
+        senha_hash = db.execute("SELECT senha_hash FROM usuario WHERE id = ?", (g.usuario["id"],)).fetchone()[0]
+        if esta_bloqueado(email):
+            flash("Muitas tentativas sem sucesso. Aguarde alguns minutos e tente de novo.", "erro")
+        elif not check_password_hash(senha_hash, form.senha.data):
+            registrar_falha(email)  # mesmo limite de tentativas do login
+            form.senha.errors.append("Senha incorreta.")
+        else:
+            limpar_falhas(email)
+            try:
+                fotos = conta.excluir_conta(db, g.usuario["id"])
+            except RegraNegocio as erro:
+                flash(str(erro), "erro")
+            else:
+                apagar_fotos(fotos)
+                session.clear()
+                flash("Sua conta foi excluída. Seus dados pessoais foram apagados ou anonimizados.", "info")
+                return redirect(url_for("main.index"))
+    return render_template("perfis/excluir_conta.html", form=form)

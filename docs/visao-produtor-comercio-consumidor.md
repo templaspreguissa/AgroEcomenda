@@ -56,6 +56,11 @@ No cadastro, a pessoa marca como vai usar o sistema (vender, comprar para o com�
 | RN20 | Vigência de até dois anos; itens só podem apontar para produtos do próprio fornecedor; aviso prévio de 0 a 180 dias | `app/servicos/contratos.py` (`validar_termos`) |
 | RN21 | Rescisão exige motivo e respeita o aviso prévio; o fim da vigência encerra o contrato sozinho | `app/servicos/contratos.py` |
 | RN22 | A parceria só aparece em público ("onde comprar") com o contrato ativo e a autorização das duas partes | `app/servicos/contratos.py` (`_PARCERIA`) |
+| RN23 | Denúncia sempre tem motivo; ninguém denuncia o próprio conteúdo; uma denúncia aberta por pessoa e item; até 10 por dia. O denunciado não sabe quem denunciou | `app/servicos/moderacao.py` (`denunciar`) |
+| RN24 | Toda ação da administração pede motivo e fica registrada (quem, quando, o quê, por quê). A moderação só lê conversa que foi denunciada | `app/servicos/moderacao.py`, `app/admin/routes.py` |
+| RN25 | Conta bloqueada ou excluída perde a sessão, e o que ela publicou some das listas e das páginas públicas. Conteúdo oculto continua visível para o dono e para a administração | `app/auth/routes.py`, listas e páginas |
+| RN26 | Excluir a conta pede a senha. Dados pessoais são apagados ou anonimizados; o histórico da outra parte fica, com o autor como "Usuário removido"; contratos ativos são rescindidos com aviso | `app/servicos/conta.py` |
+| RN27 | O link de nova senha vale 1 hora e uma vez, fica guardado só como hash, e no máximo 3 pedidos por hora. A tela responde igual para qualquer e-mail | `app/servicos/conta.py`, `app/auth/routes.py` |
 | RN13 | Um preço que a pessoa não pode ver não aparece no HTML e não influencia filtros nem ordenação por preço. Sem isso, uma loja não verificada descobriria o preço escondido testando faixas de preço | `app/visibilidade.py` (`preco_sql`) |
 
 ### Visibilidade de preço
@@ -85,7 +90,7 @@ O preço de lojas é filtrado no servidor. Os testes de `tests/test_visibilidade
 | RF35 | Versão imprimível do contrato | **Feito** (Iteração 6) |
 | RF36 | Parcerias públicas: "onde comprar" | **Feito** (Iteração 6) |
 | RF37 | Alertas de novo produto na região para lojas (e de encomenda nova para produtores) | **Feito** (Iteração 5) |
-| RF38 | Verificação de comércio pela administração | Comando de terminal **feito**. Tela na Iteração 7 |
+| RF38 | Verificação de comércio pela administração | **Feito** (Administração › Lojas; Iteração 7) |
 
 ## 5 Modelo de dados
 
@@ -295,11 +300,14 @@ Mesmo padrão da pesquisa principal: só o que foi conferido na fonte, com link 
 
 **Impacto:** o recorte "minha região" usa a região imediata, sem precisar de coordenadas nem de GPS.
 
-### 6.6 Pontos ainda não pesquisados
+### 6.6 Pontos ainda não pesquisados ou não resolvidos
 
 - **Oferta ao consumidor final e Decreto nº 7.962/2013.** A pesquisa principal (seção 10.2.8) mostrou que o decreto pede a identificação do fornecedor (nome, CPF ou CNPJ e endereço) em ofertas de consumo pela internet. Com o preço ao consumidor (Iteração 4), é preciso decidir, com revisão jurídica, que dados a vitrine deve mostrar.
 - **Processados de origem vegetal** (doces, conservas, panificados): as regras da vigilância sanitária não foram pesquisadas.
 - **Benchmark de preço por público ou por quantidade** em plataformas de venda direta e atacado: não feito nesta etapa.
+- **Prazo de guarda das mensagens e dos registros:** a Política de Privacidade diz que será definido antes de qualquer uso real.
+- **Consórcios de municípios na inspeção** (Decreto nº 5.741/2006, art. 156-A): não tratado.
+- **Consulta automática ao CNPJ** na Receita Federal: a verificação de lojas é manual.
 
 ## 7 Decisões de interface (continuação do benchmark)
 
@@ -312,6 +320,8 @@ Mesmo padrão da pesquisa principal: só o que foi conferido na fonte, com link 
 | D20 | Aviso de área de venda logo abaixo do preço em produtos de origem animal | Seção 6.1 |
 | D21 | Faixa fixa no topo, para quem tem loja, dizendo de qual público são os preços na tela, com o botão "Ver como consumidor" ou "Ver como loja" | Evitar que a loja confunda preço de atacado com preço de varejo |
 | D22 | Preço de lojas com rótulo próprio ("Preço para lojas"), pedido mínimo logo abaixo e o preço ao consumidor como referência | A loja calcula a margem de revenda sem abrir outra página |
+| D24 | Administração com navegação própria (Resumo, Denúncias, Lojas, Usuários, Categorias, Registro) e caixa de "Moderação" dentro das páginas de conteúdo, só para administradores | Moderação rápida sem sair do que está sendo analisado |
+| D25 | "Denunciar" como link discreto no fim das páginas, e não como botão de destaque | Prática da OLX e da Agrofy (benchmark): disponível sem competir com a ação principal |
 | D23 | No card, a safra aparece em texto ("Na safra (jun. a out.)", "Fora da safra · volta em nov. a fev.") | Produto sazonal não deve parecer indisponível sem explicação |
 
 ## 8 Referências

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block titulo %}Usuários · Administração{% endblock %}
+{% block conteudo %}
+{% set situacoes = {'ativo': 'Ativa', 'bloqueado': 'Bloqueada', 'excluido': 'Excluída'} %}
+<section class="secao">
+  <h1>Usuários</h1>
+  {% include "admin/_nav.html" %}
+  <form class="filtros__form" method="get" role="search">
+    <div class="campo">
+      <label class="campo__rotulo" for="q">Buscar por nome, e-mail, vitrine ou loja</label>
+      <input class="campo__entrada" id="q" name="q" type="search" value="{{ termo }}">
+    </div>
+    <div class="filtros__acoes"><button class="botao" type="submit">Buscar</button></div>
+  </form>
+  <ul class="lista-painel cartao">
+    {% for u in usuarios %}
+      <li>
+        <strong>{{ u.nome }}</strong>
+        <span class="card__suave">{{ u.email }} · desde {{ u.criado_em | data_br }}{% if u.nome_vitrine %} · vitrine {{ u.nome_vitrine }}{% endif %}{% if u.nome_fantasia %} · loja {{ u.nome_fantasia }}{% endif %}{% if u.papel == 'admin' %} · administração{% endif %}</span>
+        <span><span class="etiqueta etiqueta--{{ 'ativo' if u.status == 'ativo' else 'encerrado' }}">{{ situacoes[u.status] }}</span></span>
+        {% if u.papel != 'admin' and u.status in ('ativo', 'bloqueado') %}
+          <form class="form-admin" method="post" action="{{ url_for('admin.usuario', usuario_id=u.id, acao='desbloquear' if u.status == 'bloqueado' else 'bloquear') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="voltar" value="{{ request.full_path }}">
+            <label class="sr" for="motivo-u{{ u.id }}">Motivo</label>
+            <input class="campo__entrada" id="motivo-u{{ u.id }}" name="motivo" required minlength="3" maxlength="300" placeholder="Motivo">
+            <button class="botao botao--pequeno{{ ' botao--perigo' if u.status == 'ativo' }}" type="submit">{{ 'Desbloquear' if u.status == 'bloqueado' else 'Bloquear' }}</button>
+          </form>
+        {% endif %}
+      </li>
+    {% else %}
+      <li>Nenhuma conta encontrada.</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% from "_macros.html" import campo %}
+{% block titulo %}Criar nova senha{% endblock %}
+{% block conteudo %}
+<section class="secao secao--estreita">
+  <h1>Criar nova senha</h1>
+  <form class="formulario" method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ campo(form.senha, dica='Pelo menos ' ~ config.SENHA_MINIMA ~ ' caracteres. Pode ser uma frase.', autocomplete='new-password', mostrar_senha=True) }}
+    {{ campo(form.confirmar, autocomplete='new-password', mostrar_senha=True) }}
+    <button class="botao botao--largo" type="submit">Salvar nova senha</button>
+  </form>
+</section>
+{% endblock %}

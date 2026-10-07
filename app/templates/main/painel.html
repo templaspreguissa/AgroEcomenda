@@ -135,7 +135,11 @@
 <section class="secao" aria-labelledby="meus-dados">
   <div class="cabecalho-secao">
     <h2 id="meus-dados">Meus dados</h2>
-    <a class="botao botao--pequeno botao--secundario" href="{{ url_for('perfis.editar_conta') }}">Editar meus dados</a>
+    <div class="acoes acoes--compactas">
+      <a class="botao botao--pequeno botao--secundario" href="{{ url_for('perfis.editar_conta') }}">Editar meus dados</a>
+      <a class="botao botao--pequeno botao--secundario" href="{{ url_for('perfis.exportar_dados') }}">Baixar meus dados</a>
+      <a class="botao botao--pequeno botao--perigo" href="{{ url_for('perfis.excluir_conta') }}">Excluir minha conta</a>
+    </div>
   </div>
   <dl class="dados">
     <div><dt>Nome</dt><dd>{{ usuario.nome }}</dd></div>

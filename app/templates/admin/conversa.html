@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block titulo %}Conversa denunciada · Administração{% endblock %}
+{% block conteudo %}
+<section class="secao secao--media">
+  <h1>Conversa nº {{ conversa.id }} (denunciada)</h1>
+  {% include "admin/_nav.html" %}
+  <p class="texto-apoio">Sobre: <a href="{{ link }}">{{ titulo }}</a>. A administração lê conversas apenas para analisar denúncias.</p>
+  <ol class="mensagens" aria-label="Mensagens da conversa">
+    {% for m in mensagens %}
+      <li class="mensagem">
+        <p class="mensagem__quem">{{ nomes.get(m.remetente_id, 'Usuário') }} <span class="card__suave">· {{ m.enviada_em | data_hora_br }}</span></p>
+        <p class="mensagem__texto texto-livre">{{ m.conteudo }}</p>
+      </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endblock %}

@@ -31,6 +31,9 @@ def _encomenda_ou_404(encomenda_id):
     encomenda = servicos.buscar_encomenda(get_db(), encomenda_id)
     if encomenda is None:
         abort(404)
+    eh_admin = bool(g.usuario) and g.usuario["papel"] == "admin"
+    if encomenda["comprador_status"] != "ativo" and not eh_admin:
+        abort(404)  # conta bloqueada ou excluída
     return encomenda
 
 
@@ -68,7 +71,7 @@ def lista():
     pagina = max(request.args.get("pagina", 1, type=int), 1)
     por_pagina = current_app.config["ITENS_POR_PAGINA"]
 
-    condicoes = ["e.status IN ('aberta', 'em_negociacao')", "e.prazo_limite >= ?"]
+    condicoes = ["e.status IN ('aberta', 'em_negociacao')", "e.prazo_limite >= ?", "us.status = 'ativo'"]
     parametros = [hoje().isoformat()]
     for palavra in normalizar_busca(termo).split():
         condicoes.append("e.titulo_busca LIKE ? ESCAPE '\\'")

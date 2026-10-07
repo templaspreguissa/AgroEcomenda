@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_macros.html" import campo %}
+{% block titulo %}Excluir minha conta{% endblock %}
+{% block conteudo %}
+<section class="secao secao--estreita">
+  <h1>Excluir minha conta</h1>
+  <div class="aviso aviso--erro">
+    <p><strong>A exclusão não pode ser desfeita.</strong> O que acontece:</p>
+    <ul class="lista-simples">
+      <li>Seu nome, e-mail, telefone, vitrine, loja e fotos são apagados ou anonimizados.</li>
+      <li>Seus produtos saem do ar, suas encomendas abertas são canceladas e suas propostas pendentes são encerradas.</li>
+      <li>Contratos ativos são rescindidos e a outra parte é avisada. As entregas do aviso prévio vocês combinam diretamente.</li>
+      <li>Mensagens que você enviou, propostas e o texto de contratos aceitos continuam para a outra parte, mas com o autor como “Usuário removido”.</li>
+    </ul>
+  </div>
+  <p>Antes, se quiser, <a href="{{ url_for('perfis.exportar_dados') }}">baixe uma cópia dos seus dados</a>.</p>
+
+  <form class="formulario" method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ campo(form.senha, autocomplete='current-password', mostrar_senha=True) }}
+    <div class="campo{% if form.entendi.errors %} campo--erro{% endif %}">
+      <label class="opcao">{{ form.entendi(**({'aria-invalid': 'true', 'aria-describedby': 'entendi-erro'} if form.entendi.errors else {})) }} <span>{{ form.entendi.label.text }}</span></label>
+      {% if form.entendi.errors %}<p class="campo__erro" id="entendi-erro">{{ form.entendi.errors[0] }}</p>{% endif %}
+    </div>
+    <button class="botao botao--perigo botao--largo" type="submit">Excluir minha conta</button>
+  </form>
+  <p><a href="{{ url_for('main.painel') }}">Voltar para o painel</a></p>
+</section>
+{% endblock %}

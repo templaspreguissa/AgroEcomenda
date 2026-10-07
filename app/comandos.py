@@ -21,6 +21,23 @@ def verificar_comercio_command(usuario_id, remover):
     click.echo(f"Loja da conta {usuario_id} {'sem selo de verificado' if remover else 'verificada'}.")
 
 
+@click.command("tornar-admin")
+@click.argument("email")
+@click.option("--remover", is_flag=True, help="Volta a conta para usuário comum.")
+@with_appcontext
+def tornar_admin_command(email, remover):
+    """Dá (ou tira) o papel de administração da conta com este e-mail."""
+    db = get_db()
+    with db:
+        alterou = db.execute(
+            "UPDATE usuario SET papel = ? WHERE email = ? AND status = 'ativo'",
+            ("usuario" if remover else "admin", email.strip().lower()),
+        ).rowcount
+    if not alterou:
+        raise click.ClickException("Nenhuma conta ativa com esse e-mail.")
+    click.echo("Conta voltou a ser de usuário comum." if remover else "Conta agora é de administração.")
+
+
 @click.command("carregar-demo")
 @with_appcontext
 def carregar_demo_command():
@@ -36,3 +53,4 @@ def carregar_demo_command():
 def init_app(app):
     app.cli.add_command(verificar_comercio_command)
     app.cli.add_command(carregar_demo_command)
+    app.cli.add_command(tornar_admin_command)

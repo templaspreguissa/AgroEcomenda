@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "_macros.html" import campo %}
+{% block titulo %}Esqueci minha senha{% endblock %}
+{% block conteudo %}
+<section class="secao secao--estreita">
+  <h1>Esqueci minha senha</h1>
+  <p class="texto-apoio">Informe o e-mail da sua conta. Enviamos um link para você criar uma nova senha. O link vale por 1 hora e só pode ser usado uma vez.</p>
+  <form class="formulario" method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ campo(form.email, autocomplete='email') }}
+    <button class="botao botao--largo" type="submit">Enviar link</button>
+  </form>
+  <p class="texto-apoio"><a href="{{ url_for('auth.entrar') }}">Voltar para entrar</a></p>
+</section>
+{% endblock %}

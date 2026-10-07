@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block titulo %}Lojas · Administração{% endblock %}
+{% block conteudo %}
+<section class="secao">
+  <h1>Lojas</h1>
+  {% include "admin/_nav.html" %}
+  <p class="texto-apoio">Antes de verificar, confira o CNPJ, o nome e o município no cadastro da Receita Federal. O selo “Verificado” libera os preços marcados “só para lojas verificadas”.</p>
+  <nav class="abas" aria-label="Filtro de lojas">
+    {% for chave, rotulo in [('a_verificar', 'Para verificar'), ('verificadas', 'Verificadas'), ('todas', 'Todas')] %}
+      <a href="{{ url_for('admin.lojas', filtro=chave) }}"{% if filtro == chave %} aria-current="page"{% endif %}>{{ rotulo }}</a>
+    {% endfor %}
+  </nav>
+  {% if lojas %}
+    <ul class="lista-painel cartao">
+      {% for loja in lojas %}
+        <li>
+          <a href="{{ url_for('perfis.comercio', usuario_id=loja.usuario_id) }}">{{ loja.nome_fantasia }}</a>
+          <span class="card__suave">CNPJ {{ loja.cnpj | cnpj }} · {{ TIPOS_COMERCIO[loja.tipo] }} · {{ loja.municipio_nome }}/{{ loja.municipio_uf }} · conta de {{ loja.conta_nome }}{% if loja.conta_status != 'ativo' %} ({{ loja.conta_status }}){% endif %}</span>
+          <form class="form-admin" method="post" action="{{ url_for('admin.verificar_loja', usuario_id=loja.usuario_id, acao='remover' if loja.verificado_em else 'verificar') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="voltar" value="{{ request.full_path }}">
+            <label class="sr" for="motivo-{{ loja.usuario_id }}">Motivo</label>
+            <input class="campo__entrada" id="motivo-{{ loja.usuario_id }}" name="motivo" required minlength="3" maxlength="300"
+                   placeholder="{{ 'Por que retirar o selo?' if loja.verificado_em else 'Ex.: CNPJ ativo e nome conferidos na Receita' }}">
+            <button class="botao botao--pequeno{{ ' botao--perigo' if loja.verificado_em }}" type="submit">{{ 'Retirar selo' if loja.verificado_em else 'Verificar' }}</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="vazio-bloco">Nenhuma loja neste filtro.</p>
+  {% endif %}
+</section>
+{% endblock %}

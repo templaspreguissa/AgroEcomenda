@@ -30,6 +30,21 @@ USOS = {
 }
 
 
+def problema_da_senha(senha, email=""):
+    """Regras do NIST SP 800-63B-4: comprimento mínimo, sem senhas comuns e sem partes do e-mail."""
+    senha = senha or ""
+    minimo = current_app.config["SENHA_MINIMA"]
+    if len(senha) < minimo:
+        return f"Use pelo menos {minimo} caracteres. Dica: junte quatro palavras, como uma frase."
+    compacta = senha.lower().replace(" ", "")
+    if compacta in SENHAS_COMUNS or len(set(compacta)) <= 2:
+        return "Essa senha é muito comum. Escolha outra."
+    parte_email = (email or "").split("@")[0].lower()
+    if len(parte_email) >= 4 and parte_email in senha.lower():
+        return "A senha não pode conter o seu e-mail."
+    return None
+
+
 class CadastroForm(Formulario):
     nome = StringField(
         "Seu nome",
@@ -65,18 +80,9 @@ class CadastroForm(Formulario):
     )
 
     def validate_senha(self, campo):
-        senha = campo.data or ""
-        minimo = current_app.config["SENHA_MINIMA"]
-        if len(senha) < minimo:
-            raise ValidationError(
-                f"Use pelo menos {minimo} caracteres. Dica: junte quatro palavras, como uma frase."
-            )
-        compacta = senha.lower().replace(" ", "")
-        if compacta in SENHAS_COMUNS or len(set(compacta)) <= 2:
-            raise ValidationError("Essa senha é muito comum. Escolha outra.")
-        parte_email = (self.email.data or "").split("@")[0].lower()
-        if len(parte_email) >= 4 and parte_email in senha.lower():
-            raise ValidationError("A senha não pode conter o seu e-mail.")
+        problema = problema_da_senha(campo.data, self.email.data)
+        if problema:
+            raise ValidationError(problema)
 
 
 class LoginForm(Formulario):
@@ -84,3 +90,30 @@ class LoginForm(Formulario):
         "E-mail", filters=[sem_espacos_nas_pontas], validators=[DataRequired("Informe seu e-mail."), Length(max=254)]
     )
     senha = PasswordField("Senha", validators=[DataRequired("Informe sua senha."), Length(max=128)])
+
+
+class EsqueciSenhaForm(Formulario):
+    email = EmailField(
+        "E-mail da conta", filters=[sem_espacos_nas_pontas],
+        validators=[DataRequired("Informe seu e-mail."), Length(max=254)],
+    )
+
+
+class RedefinirSenhaForm(Formulario):
+    senha = PasswordField(
+        "Nova senha",
+        validators=[DataRequired("Crie uma senha."), Length(max=128, message="Use no máximo 128 caracteres.")],
+    )
+    confirmar = PasswordField(
+        "Repita a nova senha",
+        validators=[DataRequired("Repita a senha."), EqualTo("senha", "As senhas não são iguais.")],
+    )
+
+    def __init__(self, email, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.email_da_conta = email
+
+    def validate_senha(self, campo):
+        problema = problema_da_senha(campo.data, self.email_da_conta)
+        if problema:
+            raise ValidationError(problema)

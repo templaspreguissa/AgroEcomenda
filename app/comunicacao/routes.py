@@ -2,13 +2,14 @@
 from math import ceil
 
 from flask import abort, flash, g, redirect, render_template, request, url_for
-from wtforms import HiddenField, TextAreaField
-from wtforms.validators import DataRequired, Length
+from wtforms import HiddenField, RadioField, TextAreaField
+from wtforms.validators import DataRequired, InputRequired, Length, Optional
 
 from .. import servicos
 from ..auth.routes import carregar_usuario, destino_seguro, login_obrigatorio
 from ..db import get_db
 from ..formularios import Formulario, texto_limpo
+from ..servicos import moderacao
 from ..servicos.conversas import CONTEXTOS, TAMANHO_MAXIMO, AssuntoInexistente, SoProdutores, nome_publico
 from . import bp
 
@@ -149,3 +150,43 @@ def marcar_lidos():
     marcados = servicos.marcar_todos_lidos(get_db(), g.usuario["id"])
     flash("Todos os avisos foram marcados como lidos." if marcados else "Não havia avisos novos.", "info")
     return redirect(url_for("comunicacao.avisos"))
+
+
+# ---------- denúncias (RF19) ----------
+
+class DenunciaForm(Formulario):
+    motivo = RadioField("Motivo", choices=list(moderacao.MOTIVOS.items()), validators=[InputRequired("Escolha o motivo.")])
+    descricao = TextAreaField(
+        "Conte o que aconteceu (opcional)", filters=[texto_limpo],
+        validators=[Optional(), Length(max=1000, message="Use no máximo 1.000 caracteres.")],
+    )
+    alvo = HiddenField()
+    id = HiddenField()
+
+
+@bp.route("/denunciar", methods=["GET", "POST"])
+@login_obrigatorio
+def denunciar():
+    db = get_db()
+    fonte = request.args if request.method == "GET" else request.form
+    tipo, alvo_id = fonte.get("alvo", ""), fonte.get("id", "")
+    if tipo not in moderacao.ALVOS or not alvo_id.isdigit():
+        abort(404)
+    resumo = moderacao.alvo(db, tipo, int(alvo_id))
+    if resumo is None or (tipo == "conversa" and g.usuario["id"] not in resumo["participantes"]):
+        abort(404)
+    voltar = f"/mensagens/{resumo['id']}" if tipo == "conversa" else resumo["link"]
+    form = DenunciaForm()
+    if request.method == "GET":
+        form.alvo.data, form.id.data = tipo, alvo_id
+    if form.validate_on_submit():
+        try:
+            moderacao.denunciar(db, g.usuario["id"], tipo, int(alvo_id), form.motivo.data, form.descricao.data)
+        except LookupError:
+            abort(404)
+        except servicos.RegraNegocio as erro:
+            flash(str(erro), "erro")
+        else:
+            flash("Denúncia enviada. A moderação vai analisar. Obrigado por ajudar a manter a plataforma segura.", "sucesso")
+        return redirect(voltar)
+    return render_template("comunicacao/denunciar.html", form=form, resumo=resumo, voltar=voltar)

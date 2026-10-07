@@ -99,7 +99,9 @@ def carregar_demo(db):
         jose = _conta(db, senha_hash, "José Antunes", "jose", "PF", CONCEICAO)
         rita = _conta(db, senha_hash, "Rita Souza", "rita", "PJ", UBERABA)
         paulo = _conta(db, senha_hash, "Paulo Lima", "paulo", "PJ", SACRAMENTO)
-        _conta(db, senha_hash, "Marina Costa", "marina", "PF", UBERABA)
+        marina = _conta(db, senha_hash, "Marina Costa", "marina", "PF", UBERABA)
+        admin = _conta(db, senha_hash, "Equipe AgroEncomenda", "admin", "PJ", UBERABA)
+        db.execute("UPDATE usuario SET papel = 'admin' WHERE id = ?", (admin,))
 
     # Produtores e o que produzem
     _produtor(db, ana, "Sítio Boa Vista", UBERABA,
@@ -171,8 +173,13 @@ def carregar_demo(db):
     contratos.alterar_parceria(db, contrato, ana, True)
     contratos.alterar_parceria(db, contrato, rita, True)
 
+    # Uma denúncia aberta, para mostrar a fila da moderação.
+    tomate = db.execute("SELECT id FROM produto WHERE vendedor_id = ? AND titulo = 'Tomate italiano'", (ana,)).fetchone()["id"]
+    servicos.moderacao.denunciar(db, marina, "produto", tomate, "falso",
+                                 "O preço na feira estava diferente do anunciado (exemplo fictício).")
+
     return (
-        "Dados de demonstração carregados: 3 produtores, 2 comércios (1 verificado), 1 consumidor, "
-        "9 produtos, 1 encomenda, 1 conversa e 1 contrato ativo. E-mails terminam em .demo@example.com. "
+        "Dados de demonstração carregados: 3 produtores, 2 comércios (1 verificado), 1 consumidor, 1 administração, "
+        "9 produtos, 1 encomenda, 1 conversa, 1 contrato ativo e 1 denúncia. E-mails terminam em .demo@example.com. "
         "A senha está em app/demo.py."
     )

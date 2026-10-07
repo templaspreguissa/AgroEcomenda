@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "_macros.html" import campo, grupo_opcoes %}
+{% block titulo %}Denunciar{% endblock %}
+{% block conteudo %}
+<section class="secao secao--estreita">
+  <h1>Denunciar</h1>
+  <div class="resumo">
+    <p class="resumo__titulo">{{ resumo.titulo }}</p>
+    <p>A moderação analisa cada denúncia e registra a decisão. Quem foi denunciado não fica sabendo quem denunciou.
+      {% if resumo.tipo == 'conversa' %}Ao denunciar uma conversa, você autoriza a moderação a ler as mensagens dela.{% endif %}</p>
+  </div>
+  <form class="formulario" method="post" action="{{ url_for('comunicacao.denunciar') }}" novalidate>
+    {{ form.hidden_tag() }}
+    {{ grupo_opcoes(form.motivo) }}
+    {{ campo(form.descricao, extras={'rows': 4, 'maxlength': 1000}) }}
+    <button class="botao botao--perigo botao--largo" type="submit">Enviar denúncia</button>
+  </form>
+  <p><a href="{{ voltar }}">Voltar sem denunciar</a></p>
+</section>
+{% endblock %}

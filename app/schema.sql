@@ -2,6 +2,7 @@
 -- Baseado na seção 9.4.4 da pesquisa do projeto.
 -- Datas em texto ISO 8601 (UTC). Dinheiro em centavos (INTEGER).
 
+DROP TABLE IF EXISTS redefinicao_senha;
 DROP TABLE IF EXISTS bloqueio_login;
 DROP TABLE IF EXISTS acao_moderacao;
 DROP TABLE IF EXISTS denuncia;
@@ -345,27 +346,44 @@ CREATE TABLE contrato_aceite (
     FOREIGN KEY (contrato_id, versao) REFERENCES contrato_versao(contrato_id, versao)
 ) STRICT;
 
+-- Denúncia de conteúdo ou conduta (RF19). A moderação decide e registra a decisão (RF25).
+-- 'conversa' = mensagens de uma conversa; o administrador só lê a conversa ao analisar a denúncia.
 CREATE TABLE denuncia (
     id             INTEGER PRIMARY KEY,
     denunciante_id INTEGER NOT NULL REFERENCES usuario(id),
-    alvo_tipo      TEXT    NOT NULL CHECK (alvo_tipo IN ('produto', 'encomenda', 'proposta', 'mensagem', 'usuario', 'vitrine', 'loja')),
+    alvo_tipo      TEXT    NOT NULL CHECK (alvo_tipo IN ('produto', 'vitrine', 'loja', 'encomenda', 'conversa')),
     alvo_id        INTEGER NOT NULL,
-    motivo         TEXT    NOT NULL,
-    descricao      TEXT    NOT NULL DEFAULT '',
-    status         TEXT    NOT NULL DEFAULT 'aberta' CHECK (status IN ('aberta', 'em_analise', 'procedente', 'improcedente')),
+    motivo         TEXT    NOT NULL CHECK (motivo IN ('golpe', 'proibido', 'falso', 'ofensivo', 'spam', 'outro')),
+    descricao      TEXT    NOT NULL DEFAULT '' CHECK (length(descricao) <= 1000),
+    status         TEXT    NOT NULL DEFAULT 'aberta' CHECK (status IN ('aberta', 'procedente', 'improcedente')),
     moderador_id   INTEGER REFERENCES usuario(id),
+    decisao        TEXT    NOT NULL DEFAULT '',
     criada_em      TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     resolvida_em   TEXT
 ) STRICT;
 
+-- Registro de toda ação administrativa: quem, quando, sobre o quê e por quê (RF25, RNF12).
 CREATE TABLE acao_moderacao (
     id        INTEGER PRIMARY KEY,
     admin_id  INTEGER NOT NULL REFERENCES usuario(id),
     alvo_tipo TEXT    NOT NULL,
     alvo_id   INTEGER NOT NULL,
-    acao      TEXT    NOT NULL CHECK (acao IN ('ocultar', 'reativar', 'bloquear_usuario', 'desbloquear_usuario')),
-    motivo    TEXT    NOT NULL,
+    acao      TEXT    NOT NULL CHECK (acao IN ('ocultar', 'reativar', 'bloquear_usuario', 'desbloquear_usuario',
+                                               'verificar_loja', 'remover_verificacao', 'resolver_denuncia',
+                                               'criar_categoria', 'ativar_categoria', 'desativar_categoria',
+                                               'criar_unidade')),
+    motivo    TEXT    NOT NULL CHECK (length(motivo) >= 3),
     criada_em TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
+) STRICT;
+
+-- Recuperação de acesso (RF02). Guarda só o hash SHA-256 do código enviado; o código vale 1 hora e uma vez.
+CREATE TABLE redefinicao_senha (
+    id          INTEGER PRIMARY KEY,
+    usuario_id  INTEGER NOT NULL REFERENCES usuario(id),
+    codigo_hash TEXT    NOT NULL UNIQUE CHECK (length(codigo_hash) = 64),
+    criado_em   TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expira_em   TEXT    NOT NULL,
+    usado_em    TEXT
 ) STRICT;
 
 -- Limite de tentativas de login por e-mail (NIST SP 800-63B-4: rate limiting).
@@ -398,6 +416,10 @@ CREATE INDEX idx_conversa_iniciada ON conversa (iniciada_por, criada_em);
 CREATE INDEX idx_contrato_produtor ON contrato (produtor_id, status);
 CREATE INDEX idx_contrato_comercio ON contrato (comercio_id, status);
 CREATE INDEX idx_contrato_item     ON contrato_item (contrato_id, ordem);
+CREATE INDEX idx_denuncia_status   ON denuncia (status, criada_em);
+CREATE INDEX idx_denuncia_alvo     ON denuncia (alvo_tipo, alvo_id);
+CREATE INDEX idx_acao_moderacao    ON acao_moderacao (criada_em);
+CREATE INDEX idx_redefinicao       ON redefinicao_senha (usuario_id, criado_em);
 CREATE INDEX idx_notificacao_usuario ON notificacao (usuario_id, lida_em);
 CREATE INDEX idx_municipio_uf      ON municipio (uf, nome);
 CREATE INDEX idx_municipio_regiao  ON municipio (regiao_imediata_id);

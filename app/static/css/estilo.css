@@ -217,7 +217,7 @@ p { margin: 0 0 1em; }
 
 /* ---------- submenu de seções ---------- */
 .subnav { border-top: 1px solid var(--borda); background: var(--fundo); }
-.subnav__interno { max-width: 1100px; margin: 0 auto; padding: 0 1rem; display: flex; gap: .25rem; overflow-x: auto; }
+.subnav__interno { max-width: 1100px; margin: 0 auto; padding: 0 1rem; display: flex; flex-wrap: wrap; gap: 0 .25rem; }
 .subnav__link {
   display: inline-flex; align-items: center; min-height: 44px; padding: 0 .75rem; white-space: nowrap;
   color: var(--texto); text-decoration: none; font-weight: 600; border-bottom: 3px solid transparent;
@@ -396,6 +396,19 @@ details.cartao { margin: 1rem 0; }
   a { color: #000; text-decoration: none; }
   .clausulas h3 { color: #000; break-after: avoid; }
 }
+
+/* ---------- administração e denúncias ---------- */
+.admin-nav, .abas { display: flex; flex-wrap: wrap; gap: .25rem .75rem; margin: 0 0 1rem; padding-bottom: .5rem; border-bottom: 1px solid var(--borda); }
+.admin-nav a, .abas a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; }
+.admin-nav a[aria-current="page"], .abas a[aria-current="page"] { color: var(--texto); text-decoration: none; border-bottom: 3px solid var(--verde); }
+.resumo-admin { list-style: none; padding: 0; margin: 0 0 1rem; display: grid; gap: .5rem; }
+.resumo-admin li { background: var(--superficie); border: 1px solid var(--borda); border-radius: var(--raio); padding: .75rem 1rem; }
+.form-admin { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-top: .4rem; }
+.form-admin .campo__entrada { flex: 1 1 14rem; min-width: 0; }
+.lista-painel .subcategoria { padding-left: 1.25rem; }
+.denunciar { margin: .5rem 0 0; font-size: .95rem; }
+.denunciar a { color: var(--texto-suave); display: inline-flex; align-items: center; min-height: 44px; }
+.moderacao-admin { border-color: var(--erro); }
 
 /* Tabela que vira lista de cartões no celular */
 @media (max-width: 47.99rem) {

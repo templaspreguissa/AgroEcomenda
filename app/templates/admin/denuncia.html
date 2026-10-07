@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block titulo %}Denúncia nº {{ denuncia.id }} · Administração{% endblock %}
+{% block conteudo %}
+<section class="secao secao--media">
+  <h1>Denúncia nº {{ denuncia.id }}</h1>
+  {% include "admin/_nav.html" %}
+  <dl class="dados dados--destaque">
+    <div><dt>Denunciado</dt><dd>{% if resumo %}<a href="{{ resumo.link }}">{{ resumo.titulo }}</a> ({{ denuncia.alvo_tipo }}{% if resumo.status %}, situação: {{ resumo.status }}{% endif %}){% else %}O item não existe mais{% endif %}</dd></div>
+    <div><dt>Motivo</dt><dd>{{ motivos[denuncia.motivo] }}</dd></div>
+    {% if denuncia.descricao %}<div><dt>Relato</dt><dd class="texto-livre">{{ denuncia.descricao }}</dd></div>{% endif %}
+    <div><dt>Feita em</dt><dd>{{ denuncia.criada_em | data_hora_br }} por {{ denuncia.denunciante_nome | primeiro_nome }} (o denunciado não vê quem denunciou)</dd></div>
+    <div><dt>Situação</dt><dd>{{ denuncia.status | capitalize }}{% if denuncia.decisao %}: {{ denuncia.decisao }}{% endif %}</dd></div>
+  </dl>
+
+  {% if outras %}
+    <h2>Outras denúncias sobre o mesmo item ({{ outras | length }})</h2>
+    <ul class="lista-simples">
+      {% for o in outras %}<li>{{ motivos[o.motivo] }} · {{ o.criada_em | data_hora_br }}{% if o.descricao %}: “{{ o.descricao }}”{% endif %}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if denuncia.status == 'aberta' %}
+    <form class="formulario" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <fieldset class="campo">
+        <legend class="campo__rotulo">Decisão</legend>
+        <label class="opcao"><input type="radio" name="decisao" value="procedente" required> <span>Procede</span></label>
+        <label class="opcao"><input type="radio" name="decisao" value="improcedente"> <span>Não procede</span></label>
+      </fieldset>
+      {% if resumo and resumo.tipo != 'conversa' %}
+        <label class="opcao"><input type="checkbox" name="ocultar" value="1"> <span>Ocultar o item (se proceder)</span></label>
+      {% endif %}
+      <label class="opcao"><input type="checkbox" name="bloquear" value="1"> <span>Bloquear {{ 'a outra pessoa da conversa' if resumo and resumo.tipo == 'conversa' else 'a conta do dono' }} (se proceder)</span></label>
+      <div class="campo">
+        <label class="campo__rotulo" for="motivo">Motivo da decisão</label>
+        <p class="campo__dica" id="motivo-dica">Fica registrado e, se o item for ocultado, é enviado ao dono.</p>
+        <textarea class="campo__entrada" id="motivo" name="motivo" rows="3" required minlength="3" maxlength="500" aria-describedby="motivo-dica"></textarea>
+      </div>
+      <button class="botao botao--largo" type="submit">Registrar decisão</button>
+    </form>
+  {% endif %}
+</section>
+{% endblock %}

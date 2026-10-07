@@ -32,7 +32,7 @@ def create_app(test_config=None):
         MAX_CONTENT_LENGTH=25 * 1024 * 1024,  # até 5 fotos de celular por envio
         FOTO_TAMANHO_MAXIMO=8 * 1024 * 1024,
         FOTOS_POR_PRODUTO=5,
-        TERMOS_VERSAO="2026-10-v0.5",
+        TERMOS_VERSAO="2026-10-v0.6",
         REPOSITORIO_URL="https://github.com/templaspreguissa/AgroEcomenda",
         SENHA_MINIMA=15,
         LOGIN_MAX_FALHAS=5,
@@ -77,6 +77,7 @@ def create_app(test_config=None):
     from . import visibilidade
     visibilidade.registrar(app)
 
+    from .admin import bp as admin_bp
     from .auth import bp as auth_bp
     from .comunicacao import bp as comunicacao_bp
     from .contratos import bp as contratos_bp
@@ -90,6 +91,7 @@ def create_app(test_config=None):
     app.register_blueprint(encomendas_bp)
     app.register_blueprint(comunicacao_bp)
     app.register_blueprint(contratos_bp)
+    app.register_blueprint(admin_bp)
     app.register_blueprint(main_bp)
 
     @app.after_request

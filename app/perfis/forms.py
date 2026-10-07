@@ -1,5 +1,5 @@
 """Formulários dos perfis de produtor e de comércio (RF26, RF27) e dos dados da conta (RF02)."""
-from wtforms import BooleanField, RadioField, StringField, TextAreaField
+from wtforms import BooleanField, PasswordField, RadioField, StringField, TextAreaField
 from wtforms.validators import DataRequired, InputRequired, Length, Optional, ValidationError
 
 from .. import cnpj
@@ -111,6 +111,14 @@ class PerfilComercioForm(_ContatoPublico, Formulario):
             "telefone_publico": self.telefone.digitos,
             "telefone_whatsapp": bool(self.whatsapp.data and self.telefone.digitos),
         }
+
+
+class ExcluirContaForm(Formulario):
+    senha = PasswordField("Sua senha", validators=[DataRequired("Digite sua senha para confirmar."), Length(max=128)])
+    entendi = BooleanField(
+        "Entendo que a exclusão não pode ser desfeita",
+        validators=[DataRequired("Marque a confirmação para excluir a conta.")],
+    )
 
 
 class ContaForm(Formulario):

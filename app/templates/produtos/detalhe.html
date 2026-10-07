@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import etiqueta, valor_preco, disponibilidade %}
+{% from "_macros.html" import etiqueta, valor_preco, disponibilidade, moderacao_admin with context %}
 {% block titulo %}{{ produto.titulo }}{% endblock %}
 {% block conteudo %}
 {% set unidade = produto.unidade_sigla | por_unidade %}
@@ -80,6 +80,7 @@
       {% elif not g.usuario %}
         <a class="botao botao--secundario botao--largo" href="{{ url_for('auth.entrar', next=url_for('comunicacao.nova', sobre='produto', id=produto.id)) }}">Entrar para perguntar ao produtor</a>
       {% endif %}
+      {% if g.usuario and not sou_vendedor %}<p class="denunciar"><a href="{{ url_for('comunicacao.denunciar', alvo='produto', id=produto.id) }}">Denunciar este produto</a></p>{% endif %}
     </div>
   </div>
 
@@ -206,6 +207,8 @@
   {% if produto.status != 'ativo' and not sou_vendedor %}
     <p class="aviso aviso--info">Este produto não está recebendo propostas no momento.</p>
   {% endif %}
+
+  {{ moderacao_admin('produto', produto.id, produto.status == 'oculto') }}
 
   <aside class="dicas" aria-labelledby="dicas-seguranca">
     <h2 id="dicas-seguranca">Dicas de segurança</h2>

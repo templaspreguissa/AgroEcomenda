@@ -24,7 +24,7 @@ def categorias_com_subcategorias():
 @bp.route("/")
 def index():
     recentes = get_db().execute(
-        servicos.SQL_PRODUTO + f" WHERE pd.status = 'ativo' AND {visibilidade.publico_sql('pd')}"
+        servicos.SQL_PRODUTO + f" WHERE pd.status = 'ativo' AND v.status = 'ativo' AND {visibilidade.publico_sql('pd')}"
         " ORDER BY pd.criado_em DESC, pd.id DESC LIMIT 6"
     ).fetchall()
     return render_template("main/index.html", categorias=categorias_com_subcategorias(), produtos_recentes=recentes)

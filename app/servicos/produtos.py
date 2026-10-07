@@ -14,7 +14,7 @@ from .comum import SQL_PROPOSTA, RegraNegocio, notificar
 SQL_PRODUTO = """
     SELECT pd.*, u.sigla AS unidade_sigla, m.nome AS municipio_nome, m.uf AS municipio_uf,
            m.regiao_imediata_id, c.nome AS categoria_nome, c.categoria_pai_id AS categoria_pai_id,
-           v.nome AS vendedor_nome, v.email AS vendedor_email, v.criado_em AS vendedor_desde,
+           v.nome AS vendedor_nome, v.email AS vendedor_email, v.criado_em AS vendedor_desde, v.status AS vendedor_status,
            pp.nome_vitrine AS vitrine_nome,
            (SELECT arquivo FROM foto_produto f WHERE f.produto_id = pd.id ORDER BY f.ordem, f.id LIMIT 1) AS foto_principal,
            (SELECT COUNT(*) FROM proposta pr WHERE pr.produto_id = pd.id AND pr.status = 'pendente') AS propostas_pendentes

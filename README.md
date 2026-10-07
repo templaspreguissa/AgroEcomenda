@@ -10,7 +10,7 @@ Uma mesma conta pode ter até três papéis:
 
 A plataforma **não vende produtos, não intermedia pagamentos e não faz entregas**. Ela ajuda o produtor a vender mais, os comércios a conhecerem as opções da região e o consumidor a chegar direto a quem produz. A visão completa, as regras de negócio e as fontes estão em [docs/visao-produtor-comercio-consumidor.md](docs/visao-produtor-comercio-consumidor.md).
 
-> **Status:** Iteração 6 concluída: **contratos de fornecimento** entre produtor e loja, com versões negociadas, **aceite registrado com código SHA-256**, versão para imprimir ou salvar em PDF, rescisão com aviso prévio, encerramento no fim da vigência e **parcerias públicas** ("Encontre também em" na vitrine e na página do produto). Iteração 5: **conversas** entre produtor, loja e consumidor (sobre um produto, uma vitrine, uma loja, uma encomenda ou uma proposta), tela de **avisos** com contador no topo e **alertas de oportunidade na região** (produto novo para lojas e encomenda nova para produtores). Iteração 4: cada **produto** pode ser vendido ao consumidor final, a lojas ou aos dois, com **preço de cada público**, **pedido mínimo** para lojas e opção "preço só para lojas verificadas". O preço mostrado depende de **quem acessa**, e quem não pode ver um preço não o recebe nem pelos filtros. Também entraram a **safra** (meses do ano), a **busca por região** em produtos e encomendas e a regra de **inspeção** que limita para quem cada produto pode ser vendido. Antes disso: vitrines, lojas com CNPJ, diretórios por região e encomendas com propostas. Próximo passo: administração mínima e fechamento ([roadmap](#roadmap)).
+> **Status:** as sete iterações do plano estão concluídas. O sistema tem vitrines de produtores, lojas com CNPJ, produtos com preço para o consumidor e para lojas, busca por região, encomendas e propostas, conversas e avisos, contratos de fornecimento com aceite registrado e "onde comprar", e uma administração mínima com denúncias, verificação de lojas, bloqueio de contas e registro de cada ação. A conta pode baixar os próprios dados, ser excluída e recuperar a senha. São 332 testes automáticos, incluindo revisões de segurança e de acessibilidade. Para apresentar, siga o [roteiro de demonstração](docs/roteiro-demonstracao.md).
 
 ## Como funciona: produtores, comércios e consumidores
 
@@ -57,6 +57,19 @@ A plataforma **não vende produtos, não intermedia pagamentos e não faz entreg
 6. **Depois do aceite:** o contato das duas partes é liberado. Qualquer parte pode **rescindir** informando o motivo; as entregas seguem durante o aviso prévio. No fim da vigência, o contrato é encerrado sozinho.
 7. **Onde comprar:** se as duas partes autorizarem, a vitrine do produtor mostra "Encontre também em: Mercado X — Cidade/UF", a página da loja mostra os "Fornecedores locais" e a página do produto mostra "Também à venda em". É o caminho do consumidor até a loja que revende o produto local.
 
+## Como funcionam a moderação e os seus dados
+
+1. **Denunciar:** produto, vitrine, loja, encomenda e conversa têm o link "Denunciar". A pessoa escolhe o motivo (golpe, produto proibido ou sem inspeção, informação falsa, conteúdo ofensivo, spam ou outro) e pode contar o que aconteceu. Quem foi denunciado não fica sabendo quem denunciou.
+2. **Administração** (`/admin`, só para contas com papel de administração):
+   - **Denúncias:** fila das mais antigas para as mais novas, com quantas denúncias o mesmo item recebeu. A decisão (procede ou não) pede um motivo e pode ocultar o item e bloquear a conta. A moderação só lê uma conversa se ela foi denunciada.
+   - **Lojas:** verificar a loja depois de conferir o CNPJ na Receita Federal, ou retirar o selo.
+   - **Usuários:** buscar e bloquear ou desbloquear. Conta bloqueada perde a sessão, e o que ela publicou some das listas e das páginas públicas.
+   - **Categorias e unidades:** criar subcategorias e unidades, ativar e desativar categorias.
+   - **Registro:** toda ação, com quem, quando, sobre o quê e por quê. Nada é feito sem motivo.
+   - Nas páginas de produto, vitrine, loja e encomenda, a administração também vê uma caixa de **Moderação** para ocultar ou voltar a mostrar.
+3. **Seus dados (LGPD, art. 18):** no painel, "Baixar meus dados" entrega tudo em JSON, e "Excluir minha conta" (com a senha) apaga ou anonimiza os dados pessoais. O que a outra parte precisa para o próprio histórico (mensagens recebidas, propostas, texto de contratos aceitos) continua, com o autor como "Usuário removido". Contratos ativos são rescindidos, com aviso para a outra parte.
+4. **Esqueci minha senha:** o link vale por 1 hora e uma única vez. Só o hash do código fica guardado. A tela responde igual para qualquer e-mail, para não revelar quem tem conta. No projeto acadêmico não há servidor de e-mail: o link aparece no **registro (log) do servidor** de desenvolvimento.
+
 ## Como funciona o fluxo de demanda
 
 1. O comprador publica uma **encomenda**: o que precisa, categoria, quantidade e unidade, município de entrega, prazo limite, quem faz o transporte e condições de pagamento.
@@ -99,7 +112,7 @@ flask --app app init-db
 # 4. Carregar os municípios de uma UF pela API do IBGE (com a região imediata de cada um)
 flask --app app carregar-municipios MG
 
-# 5. (Opcional) Carregar dados de demonstração fictícios: 3 produtores, 2 lojas, 1 consumidor
+# 5. (Opcional) Carregar dados de demonstração fictícios: 3 produtores, 2 lojas, 1 consumidor e 1 administração
 flask --app app carregar-demo
 
 # 6. Rodar em modo de desenvolvimento
@@ -108,15 +121,17 @@ flask --app app run --debug
 
 Acesse <http://127.0.0.1:5000>. O banco fica em `instance/agroencomenda.db` e as fotos em `instance/uploads/`, ambos fora do Git.
 
-As contas de demonstração usam e-mails terminados em `.demo@example.com` (por exemplo, `ana.demo@example.com` é produtora e `rita.demo@example.com` tem uma loja verificada). A senha, igual para todas, está em `app/demo.py`. Use só no computador local.
+As contas de demonstração usam e-mails terminados em `.demo@example.com`: `ana` (produtora), `carlos` (queijaria), `jose` (fazenda de café e milho), `rita` (mercado verificado), `paulo` (restaurante ainda não verificado), `marina` (consumidora) e `admin` (administração). A senha, igual para todas, está em `app/demo.py`. Use só no computador local.
 
-Para marcar uma loja como verificada depois de conferir o CNPJ na Receita Federal (enquanto não existe a tela de administração):
+Para dar o papel de administração a uma conta (ou tirar, com `--remover`):
 
 ```powershell
-flask --app app verificar-comercio <id da conta>
+flask --app app tornar-admin <email da conta>
 ```
 
-> **Atualizando de uma versão anterior?** O banco mudou nas Iterações 3 (regiões, vitrines e lojas) e 4 (a tabela `anuncio` virou `produto`, com dois preços). Rode `flask --app app init-db` e depois `flask --app app carregar-municipios MG` de novo, lembrando que `init-db` apaga os dados de teste. Se vier da Iteração 1, rode também `pip install -r requirements-dev.txt` (a Iteração 2 passou a usar a biblioteca Pillow).
+A verificação de lojas é feita em **Administração › Lojas**. O comando `flask --app app verificar-comercio <id da conta>` continua disponível.
+
+> **Atualizando de uma versão anterior?** O banco mudou em várias iterações (a mais recente é a 7, com denúncias e recuperação de senha). Rode `flask --app app init-db` e depois `flask --app app carregar-municipios MG` de novo, lembrando que `init-db` apaga os dados de teste. Se vier da Iteração 1, rode também `pip install -r requirements-dev.txt` (a Iteração 2 passou a usar a biblioteca Pillow).
 
 No Linux ou macOS, troque `py -3` por `python3` e ative o ambiente com `source .venv/bin/activate`.
 
@@ -125,6 +140,12 @@ No Linux ou macOS, troque `py -3` por `python3` e ative o ambiente com `source .
 ```powershell
 pytest
 ```
+
+São 332 testes. Além das regras de negócio, há três revisões automáticas que valem para as telas que forem criadas depois:
+
+- `tests/test_seguranca.py` percorre **todas as rotas**: o que não é página pública exige login, a administração recusa quem não é administrador e todo POST sem token CSRF é recusado;
+- `tests/test_acessibilidade.py` abre as páginas como visitante, produtora, loja e administração e confere idioma, título, um único `h1`, ids sem repetição, rótulo em todo campo, texto alternativo em imagens e nome em links e botões, além do **contraste** das cores do CSS (pelo menos 4,5:1, WCAG 2.2, critério 1.4.3);
+- `tests/test_visibilidade.py` confere que o preço para lojas nunca chega ao HTML de quem não pode vê-lo.
 
 ### Fora do modo de desenvolvimento
 
@@ -145,7 +166,8 @@ app/
 ├── db.py              # conexão SQLite (PRAGMA foreign_keys = ON) e comandos init-db / carregar-municipios
 ├── schema.sql         # esquema completo do banco (usuário, perfis, produto, encomenda, proposta, mensagem...)
 ├── seed.sql           # unidades de medida, categorias e atributos por categoria
-├── servicos/          # regras de negócio, sempre em transação: comum, encomendas e produtos
+├── servicos/          # regras de negócio, sempre em transação: encomendas, produtos, conversas, alertas,
+│                      # contratos, moderação e conta (exportar, excluir, recuperar senha)
 ├── visibilidade.py    # quem vê quais produtos e quais preços (modo consumidor ou loja)
 ├── fotos.py           # upload seguro: valida o conteúdo, remove EXIF/GPS, redimensiona, renomeia
 ├── atributos.py       # campos específicos por categoria (RF05)
@@ -154,12 +176,13 @@ app/
 ├── util.py            # reais, quantidades, unidades, telefones, datas e busca sem acentos
 ├── localidades.py     # municípios e regiões imediatas do IBGE, ordenação por proximidade
 ├── formularios.py     # base dos formulários (mensagens em português)
-├── comandos.py        # comandos verificar-comercio e carregar-demo
+├── comandos.py        # comandos carregar-demo, tornar-admin e verificar-comercio
 ├── demo.py            # dados de demonstração fictícios
 ├── auth/              # cadastro (com "como vai usar"), login, logout, limite de tentativas, decoradores
 ├── perfis/            # vitrine do produtor, loja (comércio), diretórios por região, dados da conta
 ├── comunicacao/       # mensagens (conversas) e avisos
 ├── contratos/         # contratos de fornecimento: propor, negociar versões, aceitar, imprimir, rescindir
+├── admin/             # administração: denúncias, lojas, usuários, categorias, registro
 ├── produtos/          # produtos e propostas de compra: lista, cadastrar, editar, pausar, encerrar, fotos
 ├── encomendas/        # encomendas e propostas: lista, publicar, editar, cancelar, propor, aceitar, recusar
 ├── main/              # página inicial, termos, privacidade, painel
@@ -183,6 +206,9 @@ tests/                 # testes automatizados (pytest)
 - CNPJ das lojas conferido pelo dígito verificador (formatos numérico e alfanumérico) e único por conta. Trocar o CNPJ tira o selo de verificado.
 - Telefone público é opcional e decidido pelo próprio usuário. Os dados das lojas aparecem só para quem tem vitrine de produtor, para evitar raspagem de contatos.
 - Sem GPS: a proximidade é calculada pelo município e pela região imediata do IBGE que a pessoa escolhe.
+- Recuperação de senha com código de uso único, válido por 1 hora, guardado só como hash, e resposta igual para qualquer e-mail. Exclusão de conta pede a senha e usa o mesmo limite de tentativas do login.
+- Área de administração protegida no blueprint inteiro (nenhuma rota nova fica aberta por esquecimento) e registro de toda ação com motivo (OWASP Top 10:2025, A09).
+- Conta bloqueada ou excluída perde a sessão na próxima página, e o que ela publicou deixa de aparecer.
 - Upload de fotos conforme a OWASP: só JPEG, PNG ou WebP conferidos pelo conteúdo (Pillow), até 8 MB cada e 5 por produto, proteção contra imagens gigantes, nome gerado pelo sistema, arquivos fora de `/static`. As fotos são regravadas **sem metadados EXIF** (que podem trazer a localização GPS de onde foram tiradas). Fotos de produto ou vitrine oculta pela moderação não podem ser abertas pelo link direto.
 
 Durante o trabalho acadêmico, **use apenas dados fictícios**.
@@ -192,7 +218,7 @@ Durante o trabalho acadêmico, **use apenas dados fictícios**.
 | Código | Requisito | Situação |
 |---|---|---|
 | RF01 | Cadastro de usuários | Feito (conta única que compra e vende, papel `admin` separado) |
-| RF02 | Login e alteração de dados | Login e edição de nome, tipo de conta e município feitos. Recuperação de acesso na Iteração 7 |
+| RF02 | Login e alteração de dados | Feito (edição de nome, tipo de conta e município; recuperação de senha por link de uso único) |
 | RF03 | Bloqueio de áreas por perfil | Feito (decoradores `login_obrigatorio` e `admin_obrigatorio`) |
 | RF04 | Cadastrar produto com título, descrição, fotos, preço, quantidade, unidade e local | Feito (exige vitrine de produtor) |
 | RF05 | Campos específicos por categoria | Feito (produção agrícola, pecuária, origem animal com inspeção, processados e serviços rurais) |
@@ -204,12 +230,18 @@ Durante o trabalho acadêmico, **use apenas dados fictícios**.
 | RF11 | Painel do usuário | Feito (vitrine, loja, produtos com os dois preços, encomendas e propostas enviadas) |
 | RF12 | Mensagens entre as partes | Feito (conversas por assunto, só entre os participantes) |
 | RF13 | Notificação de proposta, aceite e recusa | Feito (tela de avisos, contador no topo, marcar como lidos) |
+| RF14 | Notificação de mensagens | Feito (contador de mensagens não lidas no topo) |
+| RF15 | Painel administrativo | Feito (denúncias, lojas, usuários, categorias, registro) |
 | RF16 | Excluir ou desativar produtos e encomendas | Feito (produto: editar, pausar, reativar, encerrar; encomenda: editar sem propostas, cancelar) |
 | RF17 | Encerrar encomendas vencidas | Feito (automático) |
 | RF18 | Proposta de compra sobre produto | Feito |
+| RF19 | Denunciar conteúdo | Feito (produto, vitrine, loja, encomenda e conversa, com motivo) |
+| RF20 | Administração de categorias e unidades | Feito (criar subcategorias e unidades, ativar e desativar categorias; os campos por categoria ficam no `seed.sql`) |
+| RF21 | Consultar, corrigir e excluir os próprios dados | Feito ("Meus dados", "Baixar meus dados" em JSON, "Excluir minha conta" com anonimização) |
 | RF22 | Aceite de Termos e Política de Privacidade | Feito |
 | RF23 | Comparar propostas lado a lado | Feito |
 | RF24 | Editar ou retirar proposta pendente | Feito |
+| RF25 | Bloquear usuários e registrar a moderação | Feito (bloqueio tira a sessão e esconde o conteúdo; registro com quem, quando, o quê e por quê) |
 | RF26 | Vitrine do produtor | Feito (formas de venda, onde encontrar, orgânico declarado, foto, telefone opcional) |
 | RF27 | Perfil de comércio com CNPJ e diretório para produtores | Feito |
 | RF28 | Produto para consumidor, para lojas ou para os dois, com preço de cada público | Feito (com pedido mínimo e "só verificadas") |
@@ -222,10 +254,15 @@ Durante o trabalho acadêmico, **use apenas dados fictícios**.
 | RF35 | Versão para imprimir do contrato | Feito (cláusulas geradas, registro de aceite, CSS de impressão) |
 | RF36 | Parcerias públicas: "onde comprar" | Feito (só com autorização das duas partes) |
 | RF37 | Alertas de oportunidade na região | Feito (produto novo para lojas, encomenda nova para produtores) |
-| RF38 | Verificação de comércio | Feito pelo comando `verificar-comercio`. Tela de administração na Iteração 7 |
-| RNF01 | Interface responsiva | Feito para as telas existentes (a tabela de propostas vira cartões no celular) |
+| RF38 | Verificação de comércio | Feito (Administração › Lojas, com motivo registrado) |
+| RNF01 | Interface responsiva | Feito (pensada primeiro para o celular; tabelas viram cartões; topo cabe em uma linha) |
 | RNF02 | Senhas com hash adaptativo | Feito |
 | RNF05 | Integridade referencial no SQLite | Feito (`PRAGMA foreign_keys = ON` + restrições `CHECK`) |
+| RNF08 | Acessibilidade (WCAG 2.2 AA) | Revisão automática de estrutura e contraste em `tests/test_acessibilidade.py`. Faltam testes com leitor de tela e com usuários |
+| RNF09 | Privacidade: dados mínimos e localização por município | Feito (sem CPF, sem endereço público, sem GPS; telefone só se a pessoa quiser) |
+| RNF10 | Segurança (CSRF, cookies, cabeçalhos, limite de tentativas) | Feito, com revisão automática de todas as rotas em `tests/test_seguranca.py` |
+| RNF11 | Imagens seguras | Feito (conteúdo conferido, EXIF removido, redimensionadas e renomeadas) |
+| RNF12 | Rastreabilidade | Feito (registro de login, falhas e redefinição de senha no log; ações da administração no banco) |
 
 ## Roadmap
 
@@ -238,9 +275,17 @@ Durante o trabalho acadêmico, **use apenas dados fictícios**.
 | 4 — Preço por público ✔ | Produto para consumidor, para lojas ou para os dois, com preço de cada um e pedido mínimo; preço mostrado conforme quem acessa; disponibilidade sazonal; busca por região nos anúncios | RF28–RF32 |
 | 5 — Comunicação ✔ | Conversas entre produtor, loja e consumidor; tela de notificações; alertas de produto novo na região | RF12–RF14, RF33, RF37 |
 | 6 — Contratos ✔ | Contrato de fornecimento com versões, aceite registrado, impressão e "onde comprar" | RF34–RF36 |
-| 7 — Confiança e fechamento | Administração mínima (verificar lojas, ocultar conteúdo), exclusão de conta, recuperação de acesso, acessibilidade e roteiro de demonstração | RF02, RF15, RF19–RF21, RF25, RF38 |
+| 7 — Confiança e fechamento ✔ | Administração mínima (verificar lojas, ocultar conteúdo), exclusão de conta, recuperação de acesso, acessibilidade e roteiro de demonstração | RF02, RF15, RF19–RF21, RF25, RF38 |
 
 Fora do escopo: pagamento integrado, logística e frete, reputação, chat em tempo real e anúncios de máquinas e insumos.
+
+**Limitações conhecidas (para o texto do trabalho):**
+
+- não há envio de e-mail: o link de nova senha vai para o log do servidor de desenvolvimento;
+- o texto dos contratos é um modelo acadêmico e precisa de revisão jurídica antes de uso real;
+- a verificação de lojas é manual: não há consulta automática ao cadastro da Receita Federal;
+- os campos específicos de cada categoria são mantidos no `seed.sql`, não pela tela de administração;
+- falta decidir, com revisão jurídica, que dados do fornecedor a vitrine deve mostrar em vendas ao consumidor (Decreto nº 7.962/2013) e o prazo de guarda das mensagens.
 
 ## Equipe
 

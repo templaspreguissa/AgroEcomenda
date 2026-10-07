@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import contato_publico, card_encomenda %}
+{% from "_macros.html" import contato_publico, card_encomenda, moderacao_admin with context %}
 {% block titulo %}{{ perfil.nome_fantasia }}{% endblock %}
 {% block conteudo %}
 <article class="secao">
@@ -20,6 +20,8 @@
   {% endif %}
 
   {% if perfil.descricao %}<p class="texto-livre perfil__descricao">{{ perfil.descricao }}</p>{% endif %}
+  {{ moderacao_admin('loja', perfil.usuario_id, perfil.status == 'oculto') }}
+  {% if not sou_dono %}<p class="denunciar"><a href="{{ url_for('comunicacao.denunciar', alvo='loja', id=perfil.usuario_id) }}">Denunciar esta loja</a></p>{% endif %}
 
   <dl class="dados dados--destaque">
     <div><dt>Tipo</dt><dd>{{ TIPOS_COMERCIO[perfil.tipo] }}</dd></div>

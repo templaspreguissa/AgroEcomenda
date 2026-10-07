@@ -34,7 +34,8 @@ def _produto_visivel_ou_404(produto_id):
     produto = servicos.buscar_produto(get_db(), produto_id)
     if produto is None:
         abort(404)
-    if produto["status"] == "oculto" and produto["vendedor_id"] != _usuario_id() and not _eh_admin():
+    escondido = produto["status"] == "oculto" or produto["vendedor_status"] != "ativo"
+    if escondido and produto["vendedor_id"] != _usuario_id() and not _eh_admin():
         abort(404)
     return produto
 
@@ -138,7 +139,7 @@ def lista():
     por_pagina = current_app.config["ITENS_POR_PAGINA"]
 
     preco = visibilidade.preco_sql("pd")
-    condicoes, parametros = ["pd.status = 'ativo'", visibilidade.publico_sql("pd")], []
+    condicoes, parametros = ["pd.status = 'ativo'", "v.status = 'ativo'", visibilidade.publico_sql("pd")], []
     for palavra in normalizar_busca(termo).split():
         condicoes.append("pd.titulo_busca LIKE ? ESCAPE '\\'")
         parametros.append(f"%{_escapar_like(palavra)}%")
@@ -164,6 +165,7 @@ def lista():
 
     total = db.execute(
         f"""SELECT COUNT(*) FROM produto pd
+              JOIN usuario v   ON v.id = pd.vendedor_id
               JOIN municipio m ON m.codigo_ibge = pd.municipio_id
               JOIN categoria c ON c.id = pd.categoria_id
              WHERE {onde}""",

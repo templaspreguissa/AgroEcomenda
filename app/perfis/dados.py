@@ -5,7 +5,7 @@ from ..util import agora_utc_texto, normalizar_busca
 
 SQL_PRODUTOR = """
     SELECT pp.*, m.nome AS municipio_nome, m.uf AS municipio_uf, m.regiao_imediata_id,
-           r.nome AS regiao_nome, u.nome AS conta_nome, u.criado_em AS desde,
+           r.nome AS regiao_nome, u.nome AS conta_nome, u.criado_em AS desde, u.status AS conta_status,
            (SELECT COUNT(*) FROM produto pd WHERE pd.vendedor_id = pp.usuario_id AND pd.status = 'ativo') AS produtos_ativos
       FROM perfil_produtor pp
       JOIN usuario u   ON u.id = pp.usuario_id
@@ -15,7 +15,7 @@ SQL_PRODUTOR = """
 
 SQL_COMERCIO = """
     SELECT pc.*, m.nome AS municipio_nome, m.uf AS municipio_uf, m.regiao_imediata_id,
-           r.nome AS regiao_nome, u.nome AS conta_nome, u.criado_em AS desde
+           r.nome AS regiao_nome, u.nome AS conta_nome, u.criado_em AS desde, u.status AS conta_status
       FROM perfil_comercio pc
       JOIN usuario u   ON u.id = pc.usuario_id
       JOIN municipio m ON m.codigo_ibge = pc.municipio_id

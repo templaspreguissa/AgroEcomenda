@@ -5,12 +5,14 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlsplit
 
-from flask import abort, current_app, flash, g, redirect, render_template, request, session, url_for
+from flask import abort, current_app, flash, g, make_response, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from ..db import get_db
+from ..servicos import conta
+from ..servicos.comum import RegraNegocio
 from . import bp
-from .forms import CadastroForm, LoginForm
+from .forms import CadastroForm, EsqueciSenhaForm, LoginForm, RedefinirSenhaForm
 
 # Alinhado à recomendação da OWASP para PBKDF2-HMAC-SHA256 (600.000 iterações).
 # O padrão do Werkzeug (scrypt:32768:8:1) fica abaixo da tabela da OWASP.
@@ -236,3 +238,55 @@ def sair():
     session.clear()
     flash("Você saiu da sua conta.", "info")
     return redirect(url_for("main.index"))
+
+
+# ---------- recuperação de acesso (RF02) ----------
+
+def enviar_link_de_redefinicao(email, link):
+    """Entrega o link de nova senha.
+
+    No projeto acadêmico não há servidor de e-mail: o link vai para o registro (log) do servidor de
+    desenvolvimento. Em produção, este é o ponto de enviar o e-mail, e o link nunca deve ir para o log.
+    """
+    log.info("link para criar nova senha (so em desenvolvimento): %s", link)
+
+
+@bp.route("/esqueci-a-senha", methods=["GET", "POST"])
+def esqueci_senha():
+    if g.usuario is not None:
+        return redirect(url_for("main.painel"))
+    form = EsqueciSenhaForm()
+    if form.validate_on_submit():
+        email = form.email.data.strip().lower()
+        codigo = conta.criar_codigo_de_redefinicao(get_db(), email)
+        if codigo:
+            enviar_link_de_redefinicao(email, url_for("auth.redefinir_senha", codigo=codigo, _external=True))
+        # Mesma resposta exista ou não a conta, para não revelar quais e-mails estão cadastrados.
+        flash("Se houver uma conta com este e-mail, enviamos um link para criar uma nova senha. Ele vale por 1 hora.", "info")
+        return redirect(url_for("auth.entrar"))
+    return render_template("auth/esqueci.html", form=form)
+
+
+@bp.route("/redefinir-senha/<codigo>", methods=["GET", "POST"])
+def redefinir_senha(codigo):
+    db = get_db()
+    dono = conta.conta_do_codigo(db, codigo)
+    if dono is None:
+        return render_template(
+            "erro.html", titulo="Link vencido ou já usado",
+            mensagem="Este link para criar uma nova senha não vale mais. Peça outro em “Esqueci minha senha”.",
+        ), 404
+    form = RedefinirSenhaForm(dono["email"])
+    if form.validate_on_submit():
+        try:
+            conta.redefinir_senha(db, codigo, generate_password_hash(form.senha.data, method=METODO_HASH))
+        except RegraNegocio as erro:
+            flash(str(erro), "erro")
+            return redirect(url_for("auth.esqueci_senha"))
+        session.clear()
+        log.info("senha redefinida usuario_id=%s", dono["id"])
+        flash("Senha alterada. Entre com a nova senha.", "sucesso")
+        return redirect(url_for("auth.entrar"))
+    resposta = make_response(render_template("auth/redefinir.html", form=form))
+    resposta.headers["Cache-Control"] = "no-store"  # a página tem o código no endereço
+    return resposta

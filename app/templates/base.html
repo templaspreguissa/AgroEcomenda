@@ -49,6 +49,9 @@
           <a class="subnav__link" href="{{ url_for('perfis.comercios') }}"{% if request.endpoint == 'perfis.comercios' %} aria-current="page"{% endif %}>Comércios</a>
         {% endif %}
         <a class="subnav__link" href="{{ url_for('encomendas.lista') }}"{% if request.endpoint == 'encomendas.lista' %} aria-current="page"{% endif %}>Encomendas</a>
+        {% if g.usuario and g.usuario.papel == 'admin' %}
+          <a class="subnav__link" href="{{ url_for('admin.painel') }}"{% if request.blueprint == 'admin' %} aria-current="page"{% endif %}>Administração</a>
+        {% endif %}
         <a class="subnav__link subnav__link--acao" href="{{ url_for('produtos.novo') }}"{% if request.endpoint == 'produtos.novo' %} aria-current="page"{% endif %}>Cadastrar produto</a>
         <a class="subnav__link subnav__link--acao" href="{{ url_for('encomendas.nova') }}"{% if request.endpoint == 'encomendas.nova' %} aria-current="page"{% endif %}>Encomendar</a>
       </div>

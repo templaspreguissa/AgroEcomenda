@@ -75,6 +75,8 @@ def test_comando_carregar_demo(app):
         contrato = db.execute("SELECT status, parceria_produtor, parceria_comercio FROM contrato").fetchone()
         assert tuple(contrato) == ("ativo", 1, 1)
         assert db.execute("SELECT COUNT(*) FROM contrato_aceite").fetchone()[0] == 2
+        assert db.execute("SELECT COUNT(*) FROM usuario WHERE papel = 'admin'").fetchone()[0] == 1
+        assert db.execute("SELECT COUNT(*) FROM denuncia WHERE status = 'aberta'").fetchone()[0] == 1
         assert db.execute("SELECT COUNT(*) FROM usuario WHERE telefone IS NOT NULL").fetchone()[0] == 0
         assert db.execute("SELECT COUNT(*) FROM perfil_produtor WHERE telefone_publico IS NOT NULL").fetchone()[0] == 0
 

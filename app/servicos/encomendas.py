@@ -19,7 +19,7 @@ STATUS_ENCOMENDA_ATIVA = ("aberta", "em_negociacao")
 
 SQL_ENCOMENDA = """
     SELECT e.*, u.sigla AS unidade_sigla, m.nome AS municipio_nome, m.uf AS municipio_uf,
-           c.nome AS categoria_nome, us.nome AS comprador_nome, us.email AS comprador_email,
+           c.nome AS categoria_nome, us.nome AS comprador_nome, us.email AS comprador_email, us.status AS comprador_status,
            (SELECT COUNT(*) FROM proposta p WHERE p.encomenda_id = e.id) AS total_propostas,
            (SELECT COUNT(*) FROM proposta p WHERE p.encomenda_id = e.id AND p.status = 'pendente') AS propostas_pendentes
       FROM encomenda e

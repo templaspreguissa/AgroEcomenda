@@ -124,6 +124,22 @@
   </li>
 {% endmacro %}
 
+{# Moderação direta (só administradores): ocultar ou voltar a mostrar, sempre com motivo registrado. #}
+{% macro moderacao_admin(tipo, alvo_id, oculto) %}
+  {% if g.usuario and g.usuario.papel == 'admin' %}
+    <details class="cartao moderacao-admin">
+      <summary class="filtros__resumo">Moderação{% if oculto %} (oculto){% endif %}</summary>
+      <form class="form-admin" method="post" action="{{ url_for('admin.conteudo', tipo=tipo, alvo_id=alvo_id, acao='reativar' if oculto else 'ocultar') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="voltar" value="{{ request.path }}">
+        <label class="sr" for="motivo-moderacao">Motivo</label>
+        <input class="campo__entrada" id="motivo-moderacao" name="motivo" required minlength="3" maxlength="300" placeholder="Motivo (fica registrado)">
+        <button class="botao botao--pequeno{{ ' botao--perigo' if not oculto }}" type="submit">{{ 'Voltar a mostrar' if oculto else 'Ocultar' }}</button>
+      </form>
+    </details>
+  {% endif %}
+{% endmacro %}
+
 {# Telefone que o próprio usuário decidiu publicar (opcional), com link de WhatsApp. #}
 {% macro contato_publico(telefone, whatsapp) %}
   {% if telefone %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block titulo %}Denúncias · Administração{% endblock %}
+{% block conteudo %}
+<section class="secao">
+  <h1>Denúncias</h1>
+  {% include "admin/_nav.html" %}
+  <nav class="abas" aria-label="Filtro de denúncias">
+    <a href="{{ url_for('admin.denuncias') }}"{% if not resolvidas %} aria-current="page"{% endif %}>Para analisar</a>
+    <a href="{{ url_for('admin.denuncias', resolvidas='1') }}"{% if resolvidas %} aria-current="page"{% endif %}>Resolvidas</a>
+  </nav>
+  {% if denuncias %}
+    <ul class="lista-painel cartao">
+      {% for d in denuncias %}
+        <li>
+          <a href="{{ url_for('admin.denuncia', denuncia_id=d.id) }}">Denúncia nº {{ d.id }}: {{ d.alvo_tipo }} nº {{ d.alvo_id }}</a>
+          <span class="card__suave">{{ motivos[d.motivo] }} · {{ d.criada_em | data_hora_br }}{% if d.denuncias_do_alvo > 1 %} · <strong>{{ d.denuncias_do_alvo }} denúncias sobre o mesmo item</strong>{% endif %}</span>
+          {% if resolvidas %}<span class="card__suave">{{ d.status | capitalize }}: {{ d.decisao }}</span>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="vazio-bloco">{{ 'Nenhuma denúncia resolvida ainda.' if resolvidas else 'Nenhuma denúncia para analisar.' }}</p>
+  {% endif %}
+</section>
+{% endblock %}

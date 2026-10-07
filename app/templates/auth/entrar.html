@@ -12,6 +12,7 @@
     <button class="botao botao--largo" type="submit">Entrar</button>
   </form>
 
+  <p class="texto-apoio"><a href="{{ url_for('auth.esqueci_senha') }}">Esqueci minha senha</a></p>
   <p class="texto-apoio">Ainda não tem conta? <a href="{{ url_for('auth.cadastro') }}">Criar conta</a></p>
 </section>
 {% endblock %}

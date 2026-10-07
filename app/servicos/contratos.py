@@ -445,7 +445,10 @@ def alterar_parceria(db, contrato, usuario_id, mostrar):
         db.execute(f"UPDATE contrato SET {coluna} = ? WHERE id = ? AND status = 'ativo'", (int(bool(mostrar)), contrato["id"]))
 
 
-_PARCERIA = "c.status = 'ativo' AND c.parceria_produtor = 1 AND c.parceria_comercio = 1"
+_PARCERIA = (
+    "c.status = 'ativo' AND c.parceria_produtor = 1 AND c.parceria_comercio = 1"
+    " AND (SELECT COUNT(*) FROM usuario u WHERE u.id IN (c.produtor_id, c.comercio_id) AND u.status = 'ativo') = 2"
+)
 
 
 def lojas_parceiras_do_produtor(db, produtor_id):

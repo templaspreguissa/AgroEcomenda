@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import etiqueta %}
+{% from "_macros.html" import etiqueta, moderacao_admin with context %}
 {% block titulo %}{{ encomenda.titulo }}{% endblock %}
 {% block conteudo %}
 {% set unidade = encomenda.unidade_sigla | por_unidade %}
@@ -24,6 +24,8 @@
     <h2>Detalhes</h2>
     <p class="texto-livre">{{ encomenda.descricao }}</p>
   {% endif %}
+  {% if encomenda.status in ('aberta', 'em_negociacao') %}{{ moderacao_admin('encomenda', encomenda.id, False) }}{% endif %}
+  {% if g.usuario and not sou_comprador %}<p class="denunciar"><a href="{{ url_for('comunicacao.denunciar', alvo='encomenda', id=encomenda.id) }}">Denunciar esta encomenda</a></p>{% endif %}
 
   {# ---------- ações do comprador ---------- #}
   {% if sou_comprador %}

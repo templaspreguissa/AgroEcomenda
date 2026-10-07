@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block titulo %}Administração{% endblock %}
+{% block conteudo %}
+<section class="secao">
+  <h1>Administração</h1>
+  {% include "admin/_nav.html" %}
+  <ul class="resumo-admin">
+    <li><a href="{{ url_for('admin.denuncias') }}"><strong>{{ resumo.denuncias_abertas }}</strong> denúncia{{ '' if resumo.denuncias_abertas == 1 else 's' }} para analisar</a></li>
+    <li><a href="{{ url_for('admin.lojas') }}"><strong>{{ resumo.lojas_a_verificar }}</strong> loja{{ '' if resumo.lojas_a_verificar == 1 else 's' }} para verificar</a></li>
+    <li><strong>{{ resumo.usuarios }}</strong> contas ativas · {{ resumo.bloqueados }} bloqueada{{ '' if resumo.bloqueados == 1 else 's' }}</li>
+    <li><strong>{{ resumo.produtos_ativos }}</strong> produtos à venda · {{ resumo.contratos_ativos }} contrato{{ '' if resumo.contratos_ativos == 1 else 's' }} ativo{{ '' if resumo.contratos_ativos == 1 else 's' }}</li>
+  </ul>
+  <p class="card__suave">Toda ação da administração pede um motivo e fica no <a href="{{ url_for('admin.registro') }}">registro</a>.</p>
+</section>
+{% endblock %}

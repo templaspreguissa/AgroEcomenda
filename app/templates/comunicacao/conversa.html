@@ -24,5 +24,6 @@
     <button class="botao botao--largo" type="submit">Enviar</button>
   </form>
   {% include "comunicacao/_dicas.html" %}
+  <p class="denunciar"><a href="{{ url_for('comunicacao.denunciar', alvo='conversa', id=conversa.id) }}">Denunciar esta conversa</a></p>
 </section>
 {% endblock %}

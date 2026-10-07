@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import card_produto, contato_publico %}
+{% from "_macros.html" import card_produto, contato_publico, moderacao_admin with context %}
 {% block titulo %}{{ perfil.nome_vitrine }}{% endblock %}
 {% block conteudo %}
 <article class="secao">
@@ -27,6 +27,8 @@
   {% endif %}
 
   {% if perfil.descricao %}<p class="texto-livre perfil__descricao">{{ perfil.descricao }}</p>{% endif %}
+  {{ moderacao_admin('vitrine', perfil.usuario_id, perfil.status == 'oculto') }}
+  {% if g.usuario and not sou_dono %}<p class="denunciar"><a href="{{ url_for('comunicacao.denunciar', alvo='vitrine', id=perfil.usuario_id) }}">Denunciar esta vitrine</a></p>{% endif %}
 
   <div class="paineis paineis--duplo">
     <section class="cartao" aria-labelledby="como-comprar">

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block titulo %}Categorias · Administração{% endblock %}
+{% block conteudo %}
+<section class="secao">
+  <h1>Categorias e unidades</h1>
+  {% include "admin/_nav.html" %}
+  <p class="texto-apoio">Categoria desativada some dos formulários e filtros, mas os produtos que já a usam continuam. Os campos específicos de cada categoria ficam em <code>app/seed.sql</code>.</p>
+
+  <div class="paineis paineis--duplo">
+    <form class="formulario" method="post">
+      <h2 class="cartao__titulo">Nova subcategoria</h2>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="acao" value="categoria">
+      <div class="campo">
+        <label class="campo__rotulo" for="pai_id">Dentro de</label>
+        <select class="campo__entrada" id="pai_id" name="pai_id">{% for c in principais %}<option value="{{ c.id }}">{{ c.nome }}</option>{% endfor %}</select>
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="nome-categoria">Nome</label>
+        <input class="campo__entrada" id="nome-categoria" name="nome" required minlength="2" maxlength="60">
+      </div>
+      <button class="botao" type="submit">Criar subcategoria</button>
+    </form>
+    <form class="formulario" method="post">
+      <h2 class="cartao__titulo">Nova unidade de medida</h2>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="acao" value="unidade">
+      <div class="campo">
+        <label class="campo__rotulo" for="sigla">Sigla</label>
+        <input class="campo__entrada" id="sigla" name="sigla" required maxlength="6" placeholder="Ex.: ton">
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="nome-unidade">Nome</label>
+        <input class="campo__entrada" id="nome-unidade" name="nome" required minlength="2" maxlength="40">
+      </div>
+      <button class="botao" type="submit">Criar unidade</button>
+    </form>
+  </div>
+
+  <h2>Categorias</h2>
+  <ul class="lista-painel cartao">
+    {% for c in categorias %}
+      <li{% if c.categoria_pai_id %} class="subcategoria"{% endif %}>
+        <strong>{{ c.nome }}</strong>
+        <span class="card__suave">{{ 'Subcategoria' if c.categoria_pai_id else 'Categoria principal' }} · {{ c.produtos }} produto{{ '' if c.produtos == 1 else 's' }}{% if not c.ativa %} · <strong>desativada</strong>{% endif %}</span>
+        <form class="form-admin" method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="acao" value="{{ 'ativar' if not c.ativa else 'desativar' }}">
+          <input type="hidden" name="categoria_id" value="{{ c.id }}">
+          <label class="sr" for="motivo-c{{ c.id }}">Motivo</label>
+          <input class="campo__entrada" id="motivo-c{{ c.id }}" name="motivo" required minlength="3" maxlength="300" placeholder="Motivo">
+          <button class="botao botao--pequeno botao--secundario" type="submit">{{ 'Ativar' if not c.ativa else 'Desativar' }}</button>
+        </form>
+      </li>
+    {% endfor %}
+  </ul>
+
+  <h2>Unidades</h2>
+  <p>{% for u in unidades %}{{ u.nome }} ({{ u.sigla }}){{ ', ' if not loop.last }}{% endfor %}</p>
+</section>
+{% endblock %}
