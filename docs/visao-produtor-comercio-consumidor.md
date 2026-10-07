@@ -51,6 +51,11 @@ No cadastro, a pessoa marca como vai usar o sistema (vender, comprar para o com�
 | RN15 | Limites contra spam: 20 conversas novas por dia e 60 mensagens por hora por pessoa | `app/servicos/conversas.py`, configuração em `app/__init__.py` |
 | RN16 | Produto novo vendido a lojas avisa as lojas da mesma região imediata que compram a categoria (ou a categoria principal dela). Encomenda nova avisa os produtores da mesma região que vendem a categoria | `app/servicos/alertas.py` |
 | RN17 | Aviso leva sempre a uma página do próprio site (o link passa por `destino_seguro`) | `app/comunicacao/routes.py` |
+| RN18 | Contrato é sempre entre um produtor com vitrine e um comércio com loja. Só as duas partes veem; o rascunho só existe para o autor, e descartá-lo apaga o rascunho | `app/servicos/contratos.py` (`conferir_partes`, `buscar_contrato`) |
+| RN19 | O contrato fica ativo só quando as duas partes aceitam a mesma versão. Enviar ou alterar vale como aceite de quem enviou; a outra parte aceita informando o código da versão que viu, e o aceite é recusado se a versão mudou | `app/servicos/contratos.py` (`aceitar_contrato`) |
+| RN20 | Vigência de até dois anos; itens só podem apontar para produtos do próprio fornecedor; aviso prévio de 0 a 180 dias | `app/servicos/contratos.py` (`validar_termos`) |
+| RN21 | Rescisão exige motivo e respeita o aviso prévio; o fim da vigência encerra o contrato sozinho | `app/servicos/contratos.py` |
+| RN22 | A parceria só aparece em público ("onde comprar") com o contrato ativo e a autorização das duas partes | `app/servicos/contratos.py` (`_PARCERIA`) |
 | RN13 | Um preço que a pessoa não pode ver não aparece no HTML e não influencia filtros nem ordenação por preço. Sem isso, uma loja não verificada descobriria o preço escondido testando faixas de preço | `app/visibilidade.py` (`preco_sql`) |
 
 ### Visibilidade de preço
@@ -76,15 +81,15 @@ O preço de lojas é filtrado no servidor. Os testes de `tests/test_visibilidade
 | RF31 | Pedido do consumidor e cotação da loja (pedido mínimo) | **Feito** (Iteração 4) |
 | RF32 | Disponibilidade sazonal e "disponível agora" | **Feito** (Iteração 4) |
 | RF33 | Conversas entre produtor, comércio e consumidor | **Feito** (Iteração 5) |
-| RF34 | Contrato de fornecimento com versões e aceite registrado (data, usuário, hash) | Iteração 6 |
-| RF35 | Versão imprimível do contrato | Iteração 6 |
-| RF36 | Parcerias públicas: "onde comprar" | Iteração 6 |
+| RF34 | Contrato de fornecimento com versões e aceite registrado (data, usuário, hash) | **Feito** (Iteração 6) |
+| RF35 | Versão imprimível do contrato | **Feito** (Iteração 6) |
+| RF36 | Parcerias públicas: "onde comprar" | **Feito** (Iteração 6) |
 | RF37 | Alertas de novo produto na região para lojas (e de encomenda nova para produtores) | **Feito** (Iteração 5) |
 | RF38 | Verificação de comércio pela administração | Comando de terminal **feito**. Tela na Iteração 7 |
 
 ## 5 Modelo de dados
 
-As tabelas desta revisão estão em `app/schema.sql`. Os contratos (Iteração 6) estão marcados como planejados no diagrama.
+As tabelas desta revisão estão em `app/schema.sql`.
 
 ```mermaid
 erDiagram
@@ -104,10 +109,12 @@ erDiagram
     USUARIO ||--o{ CONVERSA : participa
     CONVERSA ||--o{ MENSAGEM : tem
     USUARIO ||--o{ NOTIFICACAO : recebe
-    PERFIL_PRODUTOR ||--o{ CONTRATO : "fornece (planejado)"
-    PERFIL_COMERCIO ||--o{ CONTRATO : "compra (planejado)"
-    CONTRATO ||--o{ CONTRATO_VERSAO : "planejado"
-    CONTRATO_VERSAO ||--o{ CONTRATO_ACEITE : "planejado"
+    PERFIL_PRODUTOR ||--o{ CONTRATO : fornece
+    PERFIL_COMERCIO ||--o{ CONTRATO : compra
+    CONTRATO ||--o{ CONTRATO_ITEM : "entrega a cada vez"
+    PRODUTO |o--o{ CONTRATO_ITEM : "do catálogo (opcional)"
+    CONTRATO ||--o{ CONTRATO_VERSAO : "guarda cada versão"
+    CONTRATO_VERSAO ||--o{ CONTRATO_ACEITE : "aceita por"
 
     REGIAO_IMEDIATA {
         int id PK "código do IBGE"
@@ -157,6 +164,33 @@ erDiagram
         real quantidade
         text status
     }
+    CONTRATO {
+        int id PK
+        int produtor_id FK
+        int comercio_id FK
+        text status "rascunho, enviado, ativo, recusado, cancelado, encerrado, rescindido"
+        int versao_atual
+        int aguardando_id FK "quem responde agora"
+        text inicio
+        text termino
+        text frequencia
+        int aviso_previo_dias
+        int parceria_produtor
+        int parceria_comercio
+    }
+    CONTRATO_VERSAO {
+        int contrato_id PK
+        int versao PK
+        text termos "JSON canônico"
+        text hash "SHA-256"
+    }
+    CONTRATO_ACEITE {
+        int contrato_id PK
+        int versao PK
+        int usuario_id PK
+        text hash
+        text aceito_em
+    }
     CONVERSA {
         int id PK
         text contexto_tipo "produto, vitrine, loja, encomenda, proposta"
@@ -186,7 +220,7 @@ erDiagram
     }
 ```
 
-### Estados planejados do contrato de fornecimento (Iteração 6)
+### Estados do contrato de fornecimento
 
 ```mermaid
 stateDiagram-v2
@@ -195,8 +229,8 @@ stateDiagram-v2
     enviado --> enviado: a outra parte altera (nova versão)
     enviado --> ativo: as duas partes aceitam a mesma versão
     enviado --> recusado
-    rascunho --> cancelado
-    enviado --> cancelado: autor desiste antes do aceite
+    rascunho --> [*]: autor descarta (o rascunho é apagado)
+    enviado --> cancelado: quem enviou desiste antes da resposta
     ativo --> encerrado: chega a data de término
     ativo --> rescindido: uma parte rescinde, com motivo e aviso prévio
     recusado --> [*]

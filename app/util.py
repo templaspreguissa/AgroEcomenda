@@ -79,6 +79,23 @@ ORGANICO = {
     "ocs": "Sim, venda direta com Organização de Controle Social (OCS)",
 }
 
+FREQUENCIAS = {
+    "semanal": "Toda semana",
+    "quinzenal": "A cada 15 dias",
+    "mensal": "Uma vez por mês",
+    "sob_demanda": "Sob demanda (quando o comprador pedir)",
+}
+
+STATUS_CONTRATO = {
+    "rascunho": "Rascunho",
+    "enviado": "Aguardando resposta",
+    "ativo": "Ativo",
+    "recusado": "Recusado",
+    "cancelado": "Cancelado",
+    "encerrado": "Encerrado",
+    "rescindido": "Rescindido",
+}
+
 MESES = ["jan.", "fev.", "mar.", "abr.", "maio", "jun.", "jul.", "ago.", "set.", "out.", "nov.", "dez."]
 MESES_POR_EXTENSO = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto",
                      "Setembro", "Outubro", "Novembro", "Dezembro"]
@@ -246,12 +263,23 @@ def descrever_meses(mascara):
     return partes[0] if len(partes) == 1 else ", ".join(partes[:-1]) + " e " + partes[-1]
 
 
+def frase(texto):
+    """Texto livre do usuário como frase: sem espaços nas pontas e terminado em ponto."""
+    texto = (texto or "").strip()
+    if texto and texto[-1] not in ".!?":
+        texto += "."
+    return texto
+
+
 def primeiro_nome(nome):
     return (nome or "").split()[0] if (nome or "").split() else ""
 
 
 def registrar_filtros(app):
+    from .cnpj import formatar as formatar_cnpj
+    app.add_template_filter(formatar_cnpj, "cnpj")
     app.add_template_filter(formatar_reais, "reais")
+    app.add_template_filter(frase, "frase")
     app.add_template_filter(formatar_numero, "numero")
     app.add_template_filter(data_br, "data_br")
     app.add_template_filter(data_hora_br, "data_hora_br")
@@ -264,6 +292,8 @@ def registrar_filtros(app):
     app.add_template_global(STATUS_PROPOSTA, "STATUS_PROPOSTA")
     app.add_template_global(STATUS_PRODUTO, "STATUS_PRODUTO")
     app.add_template_global(DISPONIBILIDADE, "DISPONIBILIDADE")
+    app.add_template_global(FREQUENCIAS, "FREQUENCIAS")
+    app.add_template_global(STATUS_CONTRATO, "STATUS_CONTRATO")
     app.add_template_filter(descrever_meses, "meses")
     app.add_template_global(em_safra, "em_safra")
     app.add_template_filter(formatar_telefone, "telefone")

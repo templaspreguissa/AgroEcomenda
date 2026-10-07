@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block titulo %}Contrato nº {{ contrato.id }} (impressão){% endblock %}
+{% block conteudo %}
+<article class="secao secao--texto contrato-impressao">
+  <div class="acoes nao-imprimir">
+    <button class="botao" type="button" data-imprimir>Imprimir ou salvar em PDF</button>
+    <a class="botao botao--secundario" href="{{ url_for('contratos.detalhe', contrato_id=contrato.id) }}">Voltar ao contrato</a>
+  </div>
+
+  <h1>Contrato de fornecimento nº {{ contrato.id }}</h1>
+  <p><strong>Situação:</strong> {{ STATUS_CONTRATO[contrato.status] }} · <strong>Versão:</strong> {{ contrato.versao_atual }}
+    {% if contrato.status != 'ativo' %}<br><strong class="marca-dagua">{{ 'RASCUNHO, AINDA NÃO ENVIADO' if contrato.status == 'rascunho' else ('AINDA NÃO ACEITO PELAS DUAS PARTES' if contrato.status == 'enviado' else 'CONTRATO ' ~ STATUS_CONTRATO[contrato.status] | upper) }}</strong>{% endif %}</p>
+
+  {% include "contratos/_clausulas.html" %}
+
+  <section aria-labelledby="registro">
+    <h2 id="registro">Registro de aceite</h2>
+    {% if versao %}
+      <p>Código SHA-256 da versão {{ versao.versao }}: <code class="codigo-hash">{{ versao.hash }}</code></p>
+      <ul class="lista-simples">
+        {% for a in aceites if a.versao == versao.versao %}
+          <li>Aceita por {{ a.nome }} em {{ a.aceito_em | data_hora_br }} (horário de Brasília), com o código {{ a.hash[:16] }}…</li>
+        {% else %}
+          <li>Nenhum aceite registrado nesta versão.</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>Rascunho: nenhuma versão foi enviada ainda.</p>
+    {% endif %}
+  </section>
+
+  <p class="card__suave aviso-legal">Modelo gerado pela plataforma AgroEncomenda a partir do que as partes preencheram, em trabalho acadêmico. Recomenda-se revisão jurídica antes do uso real. Impresso em {{ agora | data_hora_br }}.</p>
+</article>
+{% endblock %}

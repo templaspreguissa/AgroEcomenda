@@ -55,6 +55,11 @@ document.addEventListener("DOMContentLoaded", () => {
     atualizar();
   });
 
+  // Botão "Imprimir ou salvar em PDF" do contrato (sem JavaScript, use o menu do navegador).
+  document.querySelectorAll("[data-imprimir]").forEach((botao) => {
+    botao.addEventListener("click", () => window.print());
+  });
+
   // Pede confirmação antes de ações que não podem ser desfeitas (aceitar, recusar, cancelar, retirar).
   document.querySelectorAll("form[data-confirmar]").forEach((formulario) => {
     formulario.addEventListener("submit", (evento) => {

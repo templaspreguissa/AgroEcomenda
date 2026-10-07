@@ -6,6 +6,10 @@ DROP TABLE IF EXISTS bloqueio_login;
 DROP TABLE IF EXISTS acao_moderacao;
 DROP TABLE IF EXISTS denuncia;
 DROP TABLE IF EXISTS notificacao;
+DROP TABLE IF EXISTS contrato_aceite;
+DROP TABLE IF EXISTS contrato_versao;
+DROP TABLE IF EXISTS contrato_item;
+DROP TABLE IF EXISTS contrato;
 DROP TABLE IF EXISTS mensagem;
 DROP TABLE IF EXISTS conversa;
 DROP TABLE IF EXISTS proposta;
@@ -261,11 +265,84 @@ CREATE TABLE notificacao (
     usuario_id INTEGER NOT NULL REFERENCES usuario(id),
     tipo       TEXT    NOT NULL CHECK (tipo IN ('nova_proposta', 'proposta_aceita', 'proposta_recusada',
                                                'nova_mensagem', 'encomenda_expirada', 'conteudo_moderado',
-                                               'produto_na_regiao', 'encomenda_na_regiao')),
+                                               'produto_na_regiao', 'encomenda_na_regiao', 'contrato')),
     texto      TEXT    NOT NULL,
     link       TEXT    NOT NULL,
     criada_em  TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     lida_em    TEXT
+) STRICT;
+
+-- Contrato de fornecimento entre um produtor e um comércio (RF34–RF36).
+-- Os termos vigentes ficam nesta tabela e em contrato_item. Cada versão enviada fica guardada em
+-- contrato_versao, em JSON canônico com hash SHA-256, e cada aceite registra a versão e o hash vistos.
+--   rascunho -> enviado -> (alteração da outra parte = nova versão) -> ativo (os dois aceitaram a mesma versão)
+--   rascunho/enviado -> cancelado | recusado      ativo -> encerrado (fim da vigência) | rescindido
+CREATE TABLE contrato (
+    id                   INTEGER PRIMARY KEY,
+    produtor_id          INTEGER NOT NULL REFERENCES usuario(id),
+    comercio_id          INTEGER NOT NULL REFERENCES usuario(id),
+    autor_id             INTEGER NOT NULL REFERENCES usuario(id),
+    status               TEXT    NOT NULL DEFAULT 'rascunho'
+                         CHECK (status IN ('rascunho', 'enviado', 'ativo', 'recusado', 'cancelado', 'encerrado', 'rescindido')),
+    versao_atual         INTEGER NOT NULL DEFAULT 1 CHECK (versao_atual >= 1),
+    aguardando_id        INTEGER REFERENCES usuario(id),
+    origem_proposta_id   INTEGER REFERENCES proposta(id),
+    inicio               TEXT    NOT NULL,
+    termino              TEXT    NOT NULL,
+    frequencia           TEXT    NOT NULL CHECK (frequencia IN ('semanal', 'quinzenal', 'mensal', 'sob_demanda')),
+    dia_entrega          TEXT    NOT NULL DEFAULT '',
+    transporte           TEXT    NOT NULL CHECK (transporte IN ('comprador_retira', 'vendedor_entrega', 'a_combinar')),
+    municipio_entrega_id INTEGER NOT NULL REFERENCES municipio(codigo_ibge),
+    local_entrega        TEXT    NOT NULL DEFAULT '',
+    condicoes_pagamento  TEXT    NOT NULL,
+    padrao_qualidade     TEXT    NOT NULL DEFAULT '',
+    reajuste             TEXT    NOT NULL DEFAULT '',
+    aviso_previo_dias    INTEGER NOT NULL DEFAULT 30 CHECK (aviso_previo_dias BETWEEN 0 AND 180),
+    observacoes          TEXT    NOT NULL DEFAULT '',
+    parceria_produtor    INTEGER NOT NULL DEFAULT 0 CHECK (parceria_produtor IN (0, 1)),
+    parceria_comercio    INTEGER NOT NULL DEFAULT 0 CHECK (parceria_comercio IN (0, 1)),
+    criado_em            TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em        TEXT,
+    ativado_em           TEXT,
+    encerrado_em         TEXT,
+    motivo_encerramento  TEXT    NOT NULL DEFAULT '',
+    rescisao_efetiva_em  TEXT,
+    CHECK (produtor_id <> comercio_id),
+    CHECK (autor_id IN (produtor_id, comercio_id)),
+    CHECK (aguardando_id IS NULL OR aguardando_id IN (produtor_id, comercio_id)),
+    CHECK (termino > inicio)
+) STRICT;
+
+CREATE TABLE contrato_item (
+    id                      INTEGER PRIMARY KEY,
+    contrato_id             INTEGER NOT NULL REFERENCES contrato(id),
+    produto_id              INTEGER REFERENCES produto(id),
+    descricao               TEXT    NOT NULL CHECK (length(descricao) BETWEEN 1 AND 120),
+    quantidade_por_entrega  REAL    NOT NULL CHECK (quantidade_por_entrega > 0),
+    unidade_id              INTEGER NOT NULL REFERENCES unidade_medida(id),
+    preco_unitario_centavos INTEGER NOT NULL CHECK (preco_unitario_centavos > 0),
+    ordem                   INTEGER NOT NULL DEFAULT 0
+) STRICT;
+
+CREATE TABLE contrato_versao (
+    contrato_id INTEGER NOT NULL REFERENCES contrato(id),
+    versao      INTEGER NOT NULL,
+    termos      TEXT    NOT NULL,             -- JSON canônico (chaves em ordem, sem espaços)
+    hash        TEXT    NOT NULL CHECK (length(hash) = 64),
+    criada_por  INTEGER NOT NULL REFERENCES usuario(id),
+    criada_em   TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (contrato_id, versao)
+) STRICT;
+
+-- Aceite eletrônico (MP nº 2.200-2/2001, art. 10, § 2º): quem, quando, qual versão e qual hash.
+CREATE TABLE contrato_aceite (
+    contrato_id INTEGER NOT NULL,
+    versao      INTEGER NOT NULL,
+    usuario_id  INTEGER NOT NULL REFERENCES usuario(id),
+    hash        TEXT    NOT NULL CHECK (length(hash) = 64),
+    aceito_em   TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (contrato_id, versao, usuario_id),
+    FOREIGN KEY (contrato_id, versao) REFERENCES contrato_versao(contrato_id, versao)
 ) STRICT;
 
 CREATE TABLE denuncia (
@@ -318,6 +395,9 @@ CREATE INDEX idx_mensagem_nao_lida ON mensagem (conversa_id, lida_em);
 CREATE INDEX idx_conversa_a        ON conversa (usuario_a_id, ultima_mensagem_em);
 CREATE INDEX idx_conversa_b        ON conversa (usuario_b_id, ultima_mensagem_em);
 CREATE INDEX idx_conversa_iniciada ON conversa (iniciada_por, criada_em);
+CREATE INDEX idx_contrato_produtor ON contrato (produtor_id, status);
+CREATE INDEX idx_contrato_comercio ON contrato (comercio_id, status);
+CREATE INDEX idx_contrato_item     ON contrato_item (contrato_id, ordem);
 CREATE INDEX idx_notificacao_usuario ON notificacao (usuario_id, lida_em);
 CREATE INDEX idx_municipio_uf      ON municipio (uf, nome);
 CREATE INDEX idx_municipio_regiao  ON municipio (regiao_imediata_id);

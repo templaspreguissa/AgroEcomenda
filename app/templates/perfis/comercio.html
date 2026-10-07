@@ -37,9 +37,21 @@
       <p class="vazio">Esta loja não publicou telefone.</p>
     {% endif %}
     {% if not sou_dono and g.usuario.tem_produtor %}
-      <a class="botao" href="{{ url_for('comunicacao.nova', sobre='loja', id=perfil.usuario_id) }}">Apresentar meus produtos</a>
+      <div class="acoes acoes--compactas">
+        <a class="botao" href="{{ url_for('comunicacao.nova', sobre='loja', id=perfil.usuario_id) }}">Apresentar meus produtos</a>
+        <a class="botao botao--secundario" href="{{ url_for('contratos.novo', loja=perfil.usuario_id) }}">Propor contrato de fornecimento</a>
+      </div>
     {% endif %}
   </section>
+
+  {% if fornecedores %}
+    <section class="secao" aria-labelledby="fornecedores">
+      <h2 id="fornecedores">Fornecedores locais</h2>
+      <ul class="lista-simples">
+        {% for f in fornecedores %}<li><a href="{{ url_for('perfis.vitrine', usuario_id=f.usuario_id) }}">{{ f.nome_vitrine }}</a> — {{ f.municipio_nome }}/{{ f.municipio_uf }}</li>{% endfor %}
+      </ul>
+    </section>
+  {% endif %}
 
   <section class="secao" aria-labelledby="encomendas-loja">
     <h2 id="encomendas-loja">Encomendas abertas desta loja ({{ encomendas | length }})</h2>

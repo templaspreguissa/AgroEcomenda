@@ -73,6 +73,7 @@
                 <td data-rotulo="Ações">
                     <div class="acoes acoes--compactas">
                       <a class="botao botao--pequeno botao--secundario" href="{{ url_for('comunicacao.nova', sobre='proposta', id=p.id) }}">Mensagem</a>
+                      {% if p.status == 'aceita' and p.vendedor_vitrine and g.usuario.tem_comercio %}<a class="botao botao--pequeno" href="{{ url_for('contratos.novo', proposta=p.id) }}">Transformar em contrato</a>{% endif %}
                   {%- if p.status == 'pendente' and ativa %}
                       <form method="post" action="{{ url_for('encomendas.aceitar', proposta_id=p.id) }}" data-confirmar="Aceitar esta proposta? A encomenda será concluída e as outras propostas serão encerradas.">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -112,6 +113,7 @@
         {% if p.status in ('pendente', 'aceita') %}
           <div class="acoes">
             <a class="botao botao--secundario" href="{{ url_for('comunicacao.nova', sobre='proposta', id=p.id) }}">Conversar com o comprador</a>
+            {% if p.status == 'aceita' and p.comprador_loja and g.usuario.tem_produtor %}<a class="botao" href="{{ url_for('contratos.novo', proposta=p.id) }}">Transformar em contrato</a>{% endif %}
             {% if p.status == 'pendente' %}
             <a class="botao botao--secundario" href="{{ url_for('encomendas.proposta', encomenda_id=encomenda.id) }}">Editar proposta</a>
             <form method="post" action="{{ url_for('encomendas.retirar', proposta_id=p.id) }}" data-confirmar="Retirar sua proposta?">

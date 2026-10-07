@@ -72,6 +72,9 @@ def test_comando_carregar_demo(app):
         assert db.execute("SELECT COUNT(*) FROM perfil_produtor").fetchone()[0] == 3
         assert db.execute("SELECT COUNT(*) FROM perfil_comercio WHERE verificado_em IS NOT NULL").fetchone()[0] == 1
         assert all(valido(linha[0]) for linha in db.execute("SELECT cnpj FROM perfil_comercio"))
+        contrato = db.execute("SELECT status, parceria_produtor, parceria_comercio FROM contrato").fetchone()
+        assert tuple(contrato) == ("ativo", 1, 1)
+        assert db.execute("SELECT COUNT(*) FROM contrato_aceite").fetchone()[0] == 2
         assert db.execute("SELECT COUNT(*) FROM usuario WHERE telefone IS NOT NULL").fetchone()[0] == 0
         assert db.execute("SELECT COUNT(*) FROM perfil_produtor WHERE telefone_publico IS NOT NULL").fetchone()[0] == 0
 

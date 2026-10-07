@@ -12,7 +12,7 @@ from ..fotos import FotoInvalida, apagar_fotos, arquivos_enviados, processar_fot
 from ..localidades import (
     municipio_de_referencia, municipios_para_lista, proximidade_sql, rotulo_do_codigo, ufs_carregadas,
 )
-from ..servicos import SQL_ENCOMENDA, SQL_PRODUTO, expirar_encomendas_vencidas
+from ..servicos import SQL_ENCOMENDA, SQL_PRODUTO, contratos, expirar_encomendas_vencidas
 from ..util import FORMAS_VENDA, TIPOS_COMERCIO, formatar_telefone, normalizar_busca
 from . import bp, dados
 from .forms import ContaForm, PerfilComercioForm, PerfilProdutorForm
@@ -115,6 +115,7 @@ def vitrine(usuario_id):
     ).fetchall()
     return render_template(
         "perfis/vitrine.html", perfil=perfil, produtos=produtos, sou_dono=sou_dono,
+        lojas_parceiras=contratos.lojas_parceiras_do_produtor(db, usuario_id),
         categorias=dados.categorias_dos_produtores(db, [usuario_id], publico).get(usuario_id, []),
     )
 
@@ -240,6 +241,7 @@ def comercio(usuario_id):
     ).fetchall()
     return render_template(
         "perfis/comercio.html", perfil=perfil, sou_dono=sou_dono, encomendas=encomendas,
+        fornecedores=contratos.fornecedores_da_loja(db, usuario_id),
         interesses=dados.interesses_do_comercio(db, usuario_id), cnpj_formatado=cnpj.formatar(perfil["cnpj"]),
     )
 

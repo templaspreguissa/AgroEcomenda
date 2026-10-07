@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% from "_macros.html" import etiqueta %}
+{% block titulo %}Contrato nº {{ contrato.id }}{% endblock %}
+{% block conteudo %}
+{% set eu = g.usuario.id %}
+{% set outra = contrato.comercio_loja if sou_produtor else contrato.produtor_vitrine %}
+<article class="secao secao--media">
+  <p class="card__meta"><a href="{{ url_for('contratos.lista') }}">Contratos</a></p>
+  <div class="cabecalho-secao">
+    <div>
+      <h1>Contrato nº {{ contrato.id }}</h1>
+      <p class="texto-apoio">{{ 'Você fornece para' if sou_produtor else 'Você compra de' }} {{ outra }} · versão {{ contrato.versao_atual }}</p>
+    </div>
+    {{ etiqueta(contrato.status, STATUS_CONTRATO) }}
+  </div>
+
+  {# ---------- situação e ações ---------- #}
+  {% if contrato.status == 'rascunho' %}
+    <div class="aviso aviso--info">
+      <p><strong>Rascunho.</strong> Só você vê este contrato. Confira os termos e envie para {{ outra }}. Ao enviar, você já aceita esta versão.</p>
+    </div>
+    <div class="acoes">
+      <form method="post" action="{{ url_for('contratos.agir', contrato_id=contrato.id, acao='enviar') }}" data-confirmar="Enviar o contrato para {{ outra }}? Ao enviar, você aceita esta versão.">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="botao" type="submit">Enviar para {{ outra }}</button>
+      </form>
+      <a class="botao botao--secundario" href="{{ url_for('contratos.editar', contrato_id=contrato.id) }}">Editar</a>
+      <form method="post" action="{{ url_for('contratos.agir', contrato_id=contrato.id, acao='cancelar') }}" data-confirmar="Descartar este rascunho?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="botao botao--perigo" type="submit">Descartar</button>
+      </form>
+    </div>
+
+  {% elif contrato.status == 'enviado' and contrato.aguardando_id == eu %}
+    <div class="aviso aviso--info">
+      <p><strong>{{ outra }} aguarda a sua resposta.</strong> Você pode aceitar esta versão, propor alterações (vira uma nova versão) ou recusar.</p>
+    </div>
+    <div class="acoes">
+      <form method="post" action="{{ url_for('contratos.agir', contrato_id=contrato.id, acao='aceitar') }}" data-confirmar="Aceitar a versão {{ contrato.versao_atual }} deste contrato? O aceite fica registrado com data, hora e o código da versão.">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="hash" value="{{ versao.hash }}">
+        <button class="botao" type="submit">Aceitar a versão {{ contrato.versao_atual }}</button>
+      </form>
+      <a class="botao botao--secundario" href="{{ url_for('contratos.editar', contrato_id=contrato.id) }}">Propor alterações</a>
+    </div>
+    <details class="cartao">
+      <summary class="filtros__resumo">Recusar o contrato</summary>
+      <form method="post" action="{{ url_for('contratos.agir', contrato_id=contrato.id, acao='recusar') }}" data-confirmar="Recusar este contrato? A negociação termina.">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="campo">
+          <label class="campo__rotulo" for="motivo-recusa">Motivo (opcional)</label>
+          <textarea class="campo__entrada" id="motivo-recusa" name="motivo" rows="2" maxlength="500"></textarea>
+        </div>
+        <button class="botao botao--perigo" type="submit">Recusar</button>
+      </form>
+    </details>
+
+  {% elif contrato.status == 'enviado' %}
+    <div class="aviso aviso--info"><p><strong>Aguardando a resposta de {{ outra }}</strong> sobre a versão {{ contrato.versao_atual }}.</p></div>
+    <div class="acoes">
+      <form method="post" action="{{ url_for('contratos.agir', contrato_id=contrato.id, acao='cancelar') }}" data-confirmar="Cancelar esta proposta de contrato?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="botao botao--perigo" type="submit">Cancelar proposta</button>
+      </form>
+    </div>
+
+  {% elif contrato.status == 'ativo' %}
+    <div class="aviso aviso--sucesso">
+      <p><strong>Contrato ativo</strong> desde {{ contrato.ativado_em | data_hora_br }}, até {{ contrato.termino | data_br }}.</p>
+      <p>Contato de {{ outra }}: {% if sou_produtor %}{{ contrato.comercio_nome }}, <a href="mailto:{{ contrato.comercio_email }}">{{ contrato.comercio_email }}</a>{% else %}{{ contrato.produtor_nome }}, <a href="mailto:{{ contrato.produtor_email }}">{{ contrato.produtor_email }}</a>{% endif %}.</p>
+    </div>
+    {% set minha_parceria = contrato.parceria_produtor if sou_produtor else contrato.parceria_comercio %}
+    {% set outra_parceria = contrato.parceria_comercio if sou_produtor else contrato.parceria_produtor %}
+    <section class="cartao" aria-labelledby="parceria">
+      <h2 id="parceria" class="cartao__titulo">Mostrar a parceria</h2>
+      <p>Com a autorização das duas partes, a vitrine do produtor mostra “Encontre também em {{ contrato.comercio_loja }}”, para os consumidores saberem onde comprar.</p>
+      <p class="card__suave">Você: {{ 'autorizou' if minha_parceria else 'não autorizou' }} · {{ outra }}: {{ 'autorizou' if outra_parceria else 'não autorizou' }}.{% if minha_parceria and outra_parceria %} <strong>A parceria está aparecendo.</strong>{% endif %}</p>
+      <form method="post" action="{{ url_for('contratos.parceria', contrato_id=contrato.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="mostrar" value="{{ '0' if minha_parceria else '1' }}">
+        <button class="botao botao--secundario" type="submit">{{ 'Deixar de mostrar' if minha_parceria else 'Autorizar a mostrar' }}</button>
+      </form>
+    </section>
+    <details class="cartao">
+      <summary class="filtros__resumo">Rescindir o contrato</summary>
+      <form method="post" action="{{ url_for('contratos.agir', contrato_id=contrato.id, acao='rescindir') }}" data-confirmar="Rescindir este contrato? As entregas continuam durante o aviso prévio de {{ contrato.aviso_previo_dias }} dias.">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="campo">
+          <label class="campo__rotulo" for="motivo-rescisao">Motivo</label>
+          <p class="campo__dica">A outra parte é avisada. As entregas continuam por {{ contrato.aviso_previo_dias }} dias (aviso prévio).</p>
+          <textarea class="campo__entrada" id="motivo-rescisao" name="motivo" rows="2" maxlength="500" required></textarea>
+        </div>
+        <button class="botao botao--perigo" type="submit">Rescindir</button>
+      </form>
+    </details>
+
+  {% else %}
+    <div class="aviso aviso--info">
+      <p><strong>{{ STATUS_CONTRATO[contrato.status] }}</strong>{% if contrato.encerrado_em %} em {{ contrato.encerrado_em | data_hora_br }}{% endif %}.
+        {% if contrato.motivo_encerramento %}Motivo: {{ contrato.motivo_encerramento }}.{% endif %}
+        {% if contrato.rescisao_efetiva_em %}As entregas seguem até {{ contrato.rescisao_efetiva_em | data_br }} (aviso prévio).{% endif %}</p>
+    </div>
+  {% endif %}
+
+  <div class="acoes">
+    <a class="botao botao--secundario" href="{{ url_for('contratos.imprimir', contrato_id=contrato.id) }}">Versão para imprimir ou salvar em PDF</a>
+    {% if contrato.status != 'rascunho' %}<a class="botao botao--secundario" href="{{ url_for('comunicacao.nova', sobre='contrato', id=contrato.id) }}">Mensagem para {{ outra }}</a>{% endif %}
+  </div>
+
+  {% include "contratos/_clausulas.html" %}
+
+  {% if versoes %}
+    <section aria-labelledby="historico">
+      <h2 id="historico">Versões e aceites</h2>
+      <p class="card__suave">Cada versão guarda os termos e um código SHA-256. Se uma linha dos termos mudasse, o código mudaria.
+        {% if integridade %}A versão atual foi conferida agora: o código bate com os termos guardados.{% elif integridade is not none %}<strong>Atenção: o código da versão atual não bate com os termos guardados.</strong>{% endif %}</p>
+      <ul class="lista-painel cartao">
+        {% for v in versoes %}
+          <li>
+            <strong>Versão {{ v.versao }}</strong> <span class="card__suave">proposta por {{ v.criada_por_nome | primeiro_nome }} em {{ v.criada_em | data_hora_br }}</span>
+            <code class="codigo-hash">{{ v.hash }}</code>
+            {% for a in aceites if a.versao == v.versao %}<span class="card__suave">Aceita por {{ a.nome }} em {{ a.aceito_em | data_hora_br }}</span>{% endfor %}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+</article>
+{% endblock %}

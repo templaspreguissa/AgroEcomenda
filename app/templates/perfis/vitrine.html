@@ -35,6 +35,12 @@
         {% for chave, rotulo in FORMAS_VENDA.items() %}{% if perfil[chave] %}<li>{{ rotulo }}</li>{% endif %}{% endfor %}
       </ul>
       {% if perfil.onde_encontrar %}<p><strong>Onde encontrar:</strong> {{ perfil.onde_encontrar }}</p>{% endif %}
+      {% if lojas_parceiras %}
+        <p><strong>Encontre também em:</strong></p>
+        <ul class="lista-simples">
+          {% for loja in lojas_parceiras %}<li>{{ loja.nome_fantasia }} — {{ loja.municipio_nome }}/{{ loja.municipio_uf }}</li>{% endfor %}
+        </ul>
+      {% endif %}
     </section>
     <section class="cartao" aria-labelledby="contato">
       <h2 id="contato" class="cartao__titulo">Contato</h2>

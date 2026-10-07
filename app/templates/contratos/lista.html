@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_macros.html" import etiqueta %}
+{% block titulo %}Contratos{% endblock %}
+{% block conteudo %}
+<section class="secao secao--media">
+  <h1>Contratos de fornecimento</h1>
+  <p class="texto-apoio">Acordos de entrega recorrente entre produtor e loja: o que, quanto, quando, por quanto e até quando. Só as duas partes veem cada contrato.</p>
+
+  {% if contratos %}
+    <ul class="lista-painel cartao">
+      {% for c in contratos %}
+        {% set sou_produtor = c.produtor_id == g.usuario.id %}
+        <li>
+          <a href="{{ url_for('contratos.detalhe', contrato_id=c.id) }}">Contrato nº {{ c.id }} · {{ c.comercio_loja if sou_produtor else c.produtor_vitrine }}</a>
+          <span class="card__suave">{{ 'Você fornece' if sou_produtor else 'Você compra' }} · {{ c.inicio | data_br }} a {{ c.termino | data_br }} · versão {{ c.versao_atual }}</span>
+          <span>{{ etiqueta(c.status, STATUS_CONTRATO) }}{% if c.aguardando_id == g.usuario.id %} <strong class="contador">aguardando a sua resposta</strong>{% endif %}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="vazio-bloco">
+      <p>Você ainda não tem contratos.</p>
+      <p>Produtores propõem contratos na página de uma loja. Lojas propõem na página de um produto. Uma proposta aceita também pode virar contrato.</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

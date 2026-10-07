@@ -14,7 +14,7 @@ from flask import current_app
 from ..util import primeiro_nome
 from .comum import RegraNegocio, notificar
 
-CONTEXTOS = ("produto", "vitrine", "loja", "encomenda", "proposta")
+CONTEXTOS = ("produto", "vitrine", "loja", "encomenda", "proposta", "contrato")
 TAMANHO_MAXIMO = 2000
 
 
@@ -93,6 +93,8 @@ def assunto(db, tipo, contexto_id):
     if tipo == "encomenda":
         linha = db.execute("SELECT titulo FROM encomenda WHERE id = ?", (contexto_id,)).fetchone()
         return (f"Encomenda: {linha['titulo']}" if linha else "Encomenda"), f"/encomendas/{contexto_id}"
+    if tipo == "contrato":
+        return f"Contrato de fornecimento nº {contexto_id}", f"/contratos/{contexto_id}"
     if tipo == "proposta":
         linha = db.execute(
             """SELECT p.encomenda_id, p.produto_id, COALESCE(e.titulo, pd.titulo) AS titulo
@@ -132,6 +134,13 @@ def destinatario(db, tipo, contexto_id, remetente_id, remetente_e_produtor):
         if linha is None or remetente_id not in (linha["comprador_id"], linha["vendedor_id"]):
             raise AssuntoInexistente  # quem não é parte da proposta nem fica sabendo que ela existe
         outro = linha["vendedor_id"] if remetente_id == linha["comprador_id"] else linha["comprador_id"]
+    elif tipo == "contrato":
+        linha = db.execute("SELECT produtor_id, comercio_id, autor_id, status FROM contrato WHERE id = ?",
+                           (contexto_id,)).fetchone()
+        partes = (linha["produtor_id"], linha["comercio_id"]) if linha else ()
+        if remetente_id not in partes or linha["status"] == "rascunho":
+            raise AssuntoInexistente  # rascunho só existe para o autor e ainda não tem com quem conversar
+        outro = linha["comercio_id"] if remetente_id == linha["produtor_id"] else linha["produtor_id"]
     else:
         outro = None
     if outro is None:

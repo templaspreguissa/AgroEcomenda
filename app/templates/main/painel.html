@@ -86,6 +86,26 @@
     </section>
   </div>
 
+  <section class="cartao" aria-labelledby="meus-contratos">
+    <div class="cabecalho-secao">
+      <h2 id="meus-contratos" class="cartao__titulo">Contratos de fornecimento{% if contratos_aguardando %} <strong class="contador">{{ contratos_aguardando }} aguardando a sua resposta</strong>{% endif %}</h2>
+      <a class="botao botao--pequeno botao--secundario" href="{{ url_for('contratos.lista') }}">Ver todos</a>
+    </div>
+    {% if contratos %}
+      <ul class="lista-painel">
+        {% for c in contratos %}
+          <li>
+            <a href="{{ url_for('contratos.detalhe', contrato_id=c.id) }}">Contrato nº {{ c.id }} · {{ c.comercio_loja if c.produtor_id == g.usuario.id else c.produtor_vitrine }}</a>
+            <span class="card__suave">{{ c.inicio | data_br }} a {{ c.termino | data_br }}</span>
+            <span>{{ etiqueta(c.status, STATUS_CONTRATO) }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="vazio">Nenhum contrato ainda. Produtores propõem contratos na página de uma loja; lojas, na página de um produto.</p>
+    {% endif %}
+  </section>
+
   <section class="cartao" aria-labelledby="meus-produtos">
     <div class="cabecalho-secao">
       <h2 id="meus-produtos" class="cartao__titulo">Meus produtos</h2>

@@ -10,7 +10,7 @@ Uma mesma conta pode ter até três papéis:
 
 A plataforma **não vende produtos, não intermedia pagamentos e não faz entregas**. Ela ajuda o produtor a vender mais, os comércios a conhecerem as opções da região e o consumidor a chegar direto a quem produz. A visão completa, as regras de negócio e as fontes estão em [docs/visao-produtor-comercio-consumidor.md](docs/visao-produtor-comercio-consumidor.md).
 
-> **Status:** Iteração 5 concluída: **conversas** entre produtor, loja e consumidor (sobre um produto, uma vitrine, uma loja, uma encomenda ou uma proposta), tela de **avisos** com contador no topo e **alertas de oportunidade na região** (produto novo para lojas e encomenda nova para produtores). Iteração 4: cada **produto** pode ser vendido ao consumidor final, a lojas ou aos dois, com **preço de cada público**, **pedido mínimo** para lojas e opção "preço só para lojas verificadas". O preço mostrado depende de **quem acessa**, e quem não pode ver um preço não o recebe nem pelos filtros. Também entraram a **safra** (meses do ano), a **busca por região** em produtos e encomendas e a regra de **inspeção** que limita para quem cada produto pode ser vendido. Antes disso: vitrines, lojas com CNPJ, diretórios por região e encomendas com propostas. Próximo passo: contratos de fornecimento ([roadmap](#roadmap)).
+> **Status:** Iteração 6 concluída: **contratos de fornecimento** entre produtor e loja, com versões negociadas, **aceite registrado com código SHA-256**, versão para imprimir ou salvar em PDF, rescisão com aviso prévio, encerramento no fim da vigência e **parcerias públicas** ("Encontre também em" na vitrine e na página do produto). Iteração 5: **conversas** entre produtor, loja e consumidor (sobre um produto, uma vitrine, uma loja, uma encomenda ou uma proposta), tela de **avisos** com contador no topo e **alertas de oportunidade na região** (produto novo para lojas e encomenda nova para produtores). Iteração 4: cada **produto** pode ser vendido ao consumidor final, a lojas ou aos dois, com **preço de cada público**, **pedido mínimo** para lojas e opção "preço só para lojas verificadas". O preço mostrado depende de **quem acessa**, e quem não pode ver um preço não o recebe nem pelos filtros. Também entraram a **safra** (meses do ano), a **busca por região** em produtos e encomendas e a regra de **inspeção** que limita para quem cada produto pode ser vendido. Antes disso: vitrines, lojas com CNPJ, diretórios por região e encomendas com propostas. Próximo passo: administração mínima e fechamento ([roadmap](#roadmap)).
 
 ## Como funciona: produtores, comércios e consumidores
 
@@ -46,6 +46,16 @@ A plataforma **não vende produtos, não intermedia pagamentos e não faz entreg
 3. **Contra spam:** até 20 conversas novas por dia e 60 mensagens por hora por pessoa (ajustáveis em `CONVERSAS_NOVAS_POR_DIA` e `MENSAGENS_POR_HORA`).
 4. **Avisos:** proposta recebida, aceita ou recusada, mensagem nova, encomenda expirada e oportunidades perto de você. O topo mostra quantos avisos e mensagens estão sem ler. Abrir um aviso marca como lido e leva à página certa, sempre dentro do site.
 5. **Alertas da região:** quando um produtor cadastra um produto vendido a lojas, as lojas da mesma região imediata que compram aquela categoria recebem um aviso. Quando uma loja publica uma encomenda, os produtores da mesma região que vendem aquela categoria também recebem.
+
+## Como funcionam os contratos de fornecimento
+
+1. **Quem propõe:** o produtor, na página de uma loja ("Propor contrato de fornecimento"); a loja, na página de um produto vendido a lojas; ou qualquer das partes, numa proposta aceita ("Transformar em contrato"). O formulário já vem preenchido com o que se sabe (produto, preço para lojas, pedido mínimo, quantidade e transporte da proposta).
+2. **O que se combina:** até 10 itens (produto do catálogo ou descrição livre, quantidade por entrega, unidade e preço), início e fim (até dois anos), frequência (semanal, quinzenal, mensal ou sob demanda), dia e local de entrega, transporte, pagamento, reajuste, padrão de qualidade e aviso prévio para rescisão.
+3. **Negociação:** o contrato nasce como rascunho, que só o autor vê. Ao enviar, o autor já aceita a versão 1. A outra parte aceita, recusa ou propõe alterações; cada alteração vira uma nova versão, já aceita por quem alterou, e a vez passa para o outro lado. O contrato fica **ativo** quando as duas partes aceitam a **mesma versão**.
+4. **Registro:** cada versão é guardada em JSON canônico com **código SHA-256**, e cada aceite registra quem, quando, a versão e o código. Se o contrato mudou enquanto a pessoa lia, o aceite é recusado ("o contrato mudou, revise"). A página confere o código a cada visita.
+5. **Impressão:** "Versão para imprimir ou salvar em PDF" gera as cláusulas a partir dos campos, com o registro de aceite e a cláusula em que as partes admitem o aceite eletrônico (MP nº 2.200-2/2001, art. 10, § 2º). Não usa biblioteca de PDF: o navegador imprime ou salva.
+6. **Depois do aceite:** o contato das duas partes é liberado. Qualquer parte pode **rescindir** informando o motivo; as entregas seguem durante o aviso prévio. No fim da vigência, o contrato é encerrado sozinho.
+7. **Onde comprar:** se as duas partes autorizarem, a vitrine do produtor mostra "Encontre também em: Mercado X — Cidade/UF", a página da loja mostra os "Fornecedores locais" e a página do produto mostra "Também à venda em". É o caminho do consumidor até a loja que revende o produto local.
 
 ## Como funciona o fluxo de demanda
 
@@ -149,6 +159,7 @@ app/
 ├── auth/              # cadastro (com "como vai usar"), login, logout, limite de tentativas, decoradores
 ├── perfis/            # vitrine do produtor, loja (comércio), diretórios por região, dados da conta
 ├── comunicacao/       # mensagens (conversas) e avisos
+├── contratos/         # contratos de fornecimento: propor, negociar versões, aceitar, imprimir, rescindir
 ├── produtos/          # produtos e propostas de compra: lista, cadastrar, editar, pausar, encerrar, fotos
 ├── encomendas/        # encomendas e propostas: lista, publicar, editar, cancelar, propor, aceitar, recusar
 ├── main/              # página inicial, termos, privacidade, painel
@@ -207,6 +218,9 @@ Durante o trabalho acadêmico, **use apenas dados fictícios**.
 | RF31 | Pedido do consumidor e cotação da loja | Feito (canal decidido no servidor, pedido mínimo) |
 | RF32 | Safra e "o que tem neste mês" | Feito |
 | RF33 | Conversas entre produtor, comércio e consumidor | Feito (limites contra spam) |
+| RF34 | Contrato de fornecimento com versões e aceite registrado | Feito (hash SHA-256 por versão, aceite protegido contra versão desatualizada) |
+| RF35 | Versão para imprimir do contrato | Feito (cláusulas geradas, registro de aceite, CSS de impressão) |
+| RF36 | Parcerias públicas: "onde comprar" | Feito (só com autorização das duas partes) |
 | RF37 | Alertas de oportunidade na região | Feito (produto novo para lojas, encomenda nova para produtores) |
 | RF38 | Verificação de comércio | Feito pelo comando `verificar-comercio`. Tela de administração na Iteração 7 |
 | RNF01 | Interface responsiva | Feito para as telas existentes (a tabela de propostas vira cartões no celular) |
@@ -223,7 +237,7 @@ Durante o trabalho acadêmico, **use apenas dados fictícios**.
 | 3 — Perfis e região ✔ | Vitrine do produtor, loja com CNPJ, diretórios por região imediata, categorias do que se produz, inspeção sanitária, dados de demonstração | RF02 (parte), RF26, RF27, RF30, RF38 (parte) |
 | 4 — Preço por público ✔ | Produto para consumidor, para lojas ou para os dois, com preço de cada um e pedido mínimo; preço mostrado conforme quem acessa; disponibilidade sazonal; busca por região nos anúncios | RF28–RF32 |
 | 5 — Comunicação ✔ | Conversas entre produtor, loja e consumidor; tela de notificações; alertas de produto novo na região | RF12–RF14, RF33, RF37 |
-| 6 — Contratos | Contrato de fornecimento com versões, aceite registrado, impressão e "onde comprar" | RF34–RF36 |
+| 6 — Contratos ✔ | Contrato de fornecimento com versões, aceite registrado, impressão e "onde comprar" | RF34–RF36 |
 | 7 — Confiança e fechamento | Administração mínima (verificar lojas, ocultar conteúdo), exclusão de conta, recuperação de acesso, acessibilidade e roteiro de demonstração | RF02, RF15, RF19–RF21, RF25, RF38 |
 
 Fora do escopo: pagamento integrado, logística e frete, reputação, chat em tempo real e anúncios de máquinas e insumos.

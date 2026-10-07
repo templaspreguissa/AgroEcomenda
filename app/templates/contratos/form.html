@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% from "_macros.html" import campo, grupo_opcoes %}
+{% set alterando = contrato and contrato.status == 'enviado' %}
+{% block titulo %}{{ 'Propor alterações no contrato' if alterando else ('Editar rascunho' if contrato else 'Propor contrato de fornecimento') }}{% endblock %}
+{% block conteudo %}
+<section class="secao secao--media">
+  <h1>{{ 'Propor alterações no contrato nº ' ~ contrato.id if alterando else ('Editar rascunho do contrato nº ' ~ contrato.id if contrato else 'Propor contrato de fornecimento') }}</h1>
+  <div class="resumo">
+    <p class="resumo__titulo">Fornecedor: {{ partes.nome_vitrine }} · Comprador: {{ partes.nome_fantasia }}</p>
+    <p>{% if alterando %}Suas alterações viram uma nova versão, que você já aceita ao enviar. Depois, a outra parte aceita, recusa ou propõe outra versão.
+       {% else %}O contrato fica como rascunho até você enviar. Só as duas partes veem o contrato.{% endif %}</p>
+  </div>
+
+  <form class="formulario" method="post" action="{{ acao }}" novalidate>
+    {{ form.hidden_tag() }}
+
+    <fieldset class="etapa">
+      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">1</span> O que será entregue a cada vez</legend>
+      {% if form.erro_itens %}<p class="campo__erro">{{ form.erro_itens }}</p>{% endif %}
+      <p class="campo__dica">Preencha uma linha por item. Linhas em branco são ignoradas. Se escolher um produto do catálogo, a descrição e a unidade vêm dele.</p>
+      {% for linha in form.itens %}
+        <fieldset class="item-contrato">
+          <legend class="campo__rotulo campo__rotulo--leve">Item {{ loop.index }}</legend>
+          <div class="linha-campos">
+            {% for subcampo in [linha.produto_id, linha.descricao, linha.quantidade, linha.unidade_id, linha.preco] %}
+              <div class="campo{% if subcampo.errors %} campo--erro{% endif %}">
+                {{ subcampo.label(class_='campo__rotulo campo__rotulo--leve') }}
+                {% set extras = {'class': 'campo__entrada'} %}
+                {% if subcampo.errors %}{% set _ = extras.update({'aria-invalid': 'true', 'aria-describedby': subcampo.id ~ '-erro'}) %}{% endif %}
+                {% if subcampo.name.endswith('quantidade') or subcampo.name.endswith('preco') %}{% set _ = extras.update({'inputmode': 'decimal'}) %}{% endif %}
+                {{ subcampo(**extras) }}
+                {% if subcampo.errors %}<p class="campo__erro" id="{{ subcampo.id }}-erro">{{ subcampo.errors[0] }}</p>{% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        </fieldset>
+      {% endfor %}
+    </fieldset>
+
+    <fieldset class="etapa">
+      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">2</span> Quando e onde</legend>
+      <div class="linha-campos">
+        {{ campo(form.inicio) }}
+        {{ campo(form.termino, dica='Até dois anos depois do início.') }}
+      </div>
+      {{ grupo_opcoes(form.frequencia) }}
+      {{ campo(form.dia_entrega, dica='Ex.: segundas-feiras, até as 10h.', extras={'maxlength': 120}) }}
+      {{ grupo_opcoes(form.transporte) }}
+      {{ campo(form.municipio_entrega, dica='Comece a digitar e escolha na lista.', autocomplete='off', extras={'list': 'lista-municipios', 'placeholder': 'Ex.: Uberaba/MG'}) }}
+      <datalist id="lista-municipios">{% for municipio in municipios %}<option value="{{ municipio }}">{% endfor %}</datalist>
+      {{ campo(form.local_entrega, dica='Endereço ou ponto de entrega. Só as duas partes veem.', extras={'maxlength': 200}) }}
+    </fieldset>
+
+    <fieldset class="etapa">
+      <legend class="etapa__titulo"><span class="etapa__numero" aria-hidden="true">3</span> Pagamento, qualidade e rescisão</legend>
+      {{ campo(form.condicoes_pagamento, dica='Ex.: boleto 14 dias após cada entrega. A plataforma não intermedia pagamentos.', extras={'maxlength': 200}) }}
+      {{ campo(form.reajuste, dica='Ex.: preço revisto a cada 3 meses, de comum acordo.', extras={'maxlength': 200}) }}
+      {{ campo(form.padrao_qualidade, dica='Ex.: maços de 300 g, folhas sem defeitos, embalagem em caixa plástica.', extras={'rows': 3, 'maxlength': 600}) }}
+      {{ campo(form.aviso_previo_dias, dica='Quantos dias as entregas continuam depois que uma das partes rescinde.', extras={'inputmode': 'numeric', 'min': 0, 'max': 180}) }}
+      {{ campo(form.observacoes, extras={'rows': 3, 'maxlength': 1000}) }}
+    </fieldset>
+
+    <button class="botao botao--largo" type="submit">{{ 'Enviar alterações' if alterando else 'Salvar rascunho' }}</button>
+  </form>
+  <p><a href="{{ url_for('contratos.detalhe', contrato_id=contrato.id) if contrato else url_for('contratos.lista') }}">Voltar sem salvar</a></p>
+</section>
+{% endblock %}

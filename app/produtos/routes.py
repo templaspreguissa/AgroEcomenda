@@ -391,6 +391,7 @@ def detalhe(produto_id):
         negocio_fechado=negocio_fechado, vendedor_municipio=vendedor_municipio,
         canal=canal, motivo_sem_compra=None if canal else visibilidade.motivo_sem_compra(produto),
         ve_tudo=visibilidade.ve_tudo(produto),
+        lojas_que_vendem=servicos.contratos.lojas_que_vendem_o_produto(db, produto_id),
         pode_propor=bool(usuario_id) and not sou_vendedor and produto["status"] == "ativo"
         and minha_pendente is None and canal is not None,
     )

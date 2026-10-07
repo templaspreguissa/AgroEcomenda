@@ -45,6 +45,7 @@ def privacidade():
 def painel():
     db = get_db()
     servicos.expirar_encomendas_vencidas(db)
+    servicos.contratos.encerrar_contratos_vencidos(db)
     usuario_id = g.usuario["id"]
     minhas_encomendas = db.execute(
         """SELECT e.id, e.titulo, e.status, e.prazo_limite, e.quantidade, u.sigla AS unidade_sigla,
@@ -84,4 +85,6 @@ def painel():
         "main/painel.html", usuario=dados, minhas_encomendas=minhas_encomendas,
         propostas_enviadas=propostas_enviadas, meus_produtos=meus_produtos,
         vitrine=perfis.perfil_produtor(db, usuario_id), loja=perfis.perfil_comercio(db, usuario_id),
+        contratos=servicos.contratos.contratos_do_usuario(db, usuario_id)[:5],
+        contratos_aguardando=servicos.contratos.contratos_aguardando(db, usuario_id),
     )

@@ -155,7 +155,24 @@ def carregar_demo(db):
         "Bom dia, Rita! Conseguimos, sim. Mande o pedido de cotação pelo produto que eu confirmo o preço.",
     )
 
+    # Um contrato de fornecimento ativo, com a parceria pública autorizada pelas duas partes.
+    contratos = servicos.contratos
+    contrato_id = contratos.criar_contrato(db, ana, ana, rita, {
+        "inicio": hoje().isoformat(), "termino": (hoje() + timedelta(days=182)).isoformat(),
+        "frequencia": "semanal", "dia_entrega": "segundas-feiras, até as 10h", "transporte": "vendedor_entrega",
+        "municipio_entrega_id": UBERABA, "local_entrega": "Doca de recebimento do mercado (exemplo fictício)",
+        "condicoes_pagamento": "Boleto 14 dias após cada entrega", "padrao_qualidade": "Maços de 300 g, folhas inteiras",
+        "reajuste": "Revisão de preço a cada 3 meses, de comum acordo", "aviso_previo_dias": 30, "observacoes": "",
+    }, [{"produto_id": alface, "descricao": "Alface crespa", "quantidade": 300, "unidade_id": MACO, "preco_centavos": 230}])
+    contratos.enviar_contrato(db, contratos.buscar_contrato(db, contrato_id, ana), ana)
+    contrato = contratos.buscar_contrato(db, contrato_id, rita)
+    contratos.aceitar_contrato(db, contrato, rita, contratos.versao_atual(db, contrato)["hash"])
+    contrato = contratos.buscar_contrato(db, contrato_id, ana)
+    contratos.alterar_parceria(db, contrato, ana, True)
+    contratos.alterar_parceria(db, contrato, rita, True)
+
     return (
         "Dados de demonstração carregados: 3 produtores, 2 comércios (1 verificado), 1 consumidor, "
-        "9 produtos, 1 encomenda e 1 conversa. E-mails terminam em .demo@example.com. A senha está em app/demo.py."
+        "9 produtos, 1 encomenda, 1 conversa e 1 contrato ativo. E-mails terminam em .demo@example.com. "
+        "A senha está em app/demo.py."
     )

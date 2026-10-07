@@ -1,0 +1,49 @@
+{# Cláusulas do contrato, geradas a partir dos campos. Usado no detalhe e na versão para imprimir. #}
+<section class="clausulas" aria-labelledby="clausulas-titulo">
+  <h2 id="clausulas-titulo">Termos do contrato</h2>
+
+  <h3>1. Partes</h3>
+  <p><strong>Fornecedor:</strong> {{ contrato.produtor_vitrine }}, de {{ contrato.produtor_nome }}, em {{ contrato.produtor_municipio }}/{{ contrato.produtor_uf }}.</p>
+  <p><strong>Comprador:</strong> {{ contrato.comercio_loja }}, CNPJ {{ contrato.comercio_cnpj | cnpj }}, representado por {{ contrato.comercio_nome }}, em {{ contrato.comercio_municipio }}/{{ contrato.comercio_uf }}{% if contrato.comercio_verificado %} (loja verificada){% endif %}.</p>
+
+  <h3>2. Objeto</h3>
+  <p>O fornecedor entrega ao comprador, a cada entrega, os itens abaixo, pelo preço combinado.</p>
+  <table class="tabela tabela--responsiva">
+    <caption class="sr">Itens de cada entrega</caption>
+    <thead><tr><th scope="col">Item</th><th scope="col">Quantidade por entrega</th><th scope="col">Preço por unidade</th><th scope="col">Valor por entrega</th></tr></thead>
+    <tbody>
+      {% set total = namespace(valor=0) %}
+      {% for item in itens %}
+        {% set valor = (item.preco_unitario_centavos * item.quantidade_por_entrega) | round | int %}
+        {% set total.valor = total.valor + valor %}
+        <tr>
+          <td data-rotulo="Item">{{ item.descricao }}</td>
+          <td data-rotulo="Quantidade por entrega">{{ quantidade(item.quantidade_por_entrega, item.unidade_sigla) }}</td>
+          <td data-rotulo="Preço por unidade">{{ item.preco_unitario_centavos | reais }} {{ item.unidade_sigla | por_unidade }}</td>
+          <td data-rotulo="Valor por entrega">{{ valor | reais }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot><tr><th scope="row" colspan="3">Total por entrega</th><td data-rotulo="Total por entrega"><strong>{{ total.valor | reais }}</strong></td></tr></tfoot>
+  </table>
+
+  <h3>3. Entregas</h3>
+  <p>{{ FREQUENCIAS[contrato.frequencia] }}{% if contrato.dia_entrega %}, {{ contrato.dia_entrega }}{% endif %}. Entrega em {{ contrato.entrega_municipio }}/{{ contrato.entrega_uf }}{% if contrato.local_entrega %}, {{ contrato.local_entrega }}{% endif %}. Transporte: {{ TRANSPORTE[contrato.transporte] | lower }}.</p>
+
+  <h3>4. Vigência</h3>
+  <p>De {{ contrato.inicio | data_br }} a {{ contrato.termino | data_br }}. Ao fim desse prazo o contrato se encerra; para continuar, as partes fazem um novo contrato.</p>
+
+  <h3>5. Preço e pagamento</h3>
+  <p>{{ contrato.condicoes_pagamento | frase }}{% if contrato.reajuste %} Reajuste: {{ contrato.reajuste | frase }}{% endif %} O pagamento é feito diretamente entre as partes.</p>
+
+  <h3>6. Qualidade</h3>
+  <p>{% if contrato.padrao_qualidade %}{{ contrato.padrao_qualidade | frase }} {% endif %}Produtos de origem animal são entregues com o registro de inspeção exigido pela lei para a área de venda.</p>
+
+  <h3>7. Rescisão</h3>
+  <p>Qualquer parte pode rescindir o contrato pela plataforma, informando o motivo. As entregas combinadas continuam por {{ contrato.aviso_previo_dias }} dia{{ '' if contrato.aviso_previo_dias == 1 else 's' }} depois da rescisão (aviso prévio).</p>
+
+  {% if contrato.observacoes %}<h3>8. Observações</h3><p class="texto-livre">{{ contrato.observacoes }}</p>{% endif %}
+
+  <h3>{{ 9 if contrato.observacoes else 8 }}. Registro eletrônico</h3>
+  <p>As partes admitem como válido, para comprovar a autoria e a integridade deste documento, o registro de aceite eletrônico feito na plataforma AgroEncomenda (usuário, data, hora e código SHA-256 da versão aceita), nos termos do art. 10, § 2º, da Medida Provisória nº 2.200-2/2001. O AgroEncomenda não é parte deste contrato e não intermedia pagamentos nem entregas.</p>
+</section>
